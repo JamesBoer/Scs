@@ -54,7 +54,7 @@ typedef __int64          ssize_t;
 
 #endif // SCS_WINDOWS
 
-#if defined(SCS_LINUX) || defined(SCS_OSX)
+#if defined(SCS_LINUX) || defined(SCS_MACOS)
 #include <netdb.h>
 #include <unistd.h>
 #include <sys/types.h>
