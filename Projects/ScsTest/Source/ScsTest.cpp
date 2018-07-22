@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <random>
 #include <chrono>
 #include <thread>
+#include <cstring>
 #include "clara.hpp"
 #include "../../../Source/Scs.h"
 
