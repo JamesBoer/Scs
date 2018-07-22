@@ -44,7 +44,9 @@ THE SOFTWARE.
 #pragma comment (lib, "AdvApi32.lib")
 
 #define SocketLastError       WSAGetLastError()
-#define LAIR_EWOULDBLOCK      WSAEWOULDBLOCK
+#define SCS_EWOULDBLOCK       WSAEWOULDBLOCK
+#define SCS_EINPROGRESS       WSAEINPROGRESS
+
 
 // ssize_t is a POSIX type, not a general C++ type
 typedef __int64          ssize_t;
@@ -71,7 +73,8 @@ typedef __int64          ssize_t;
 #define SD_BOTH                0x02
 #define TCP_NODELAY            0x0001
 #define SocketLastError		   errno
-#define LAIR_EWOULDBLOCK       EWOULDBLOCK
+#define SCS_EWOULDBLOCK        EWOULDBLOCK
+#define SCS_EINPROGRESS        EINPROGRESS
 
 #endif
 

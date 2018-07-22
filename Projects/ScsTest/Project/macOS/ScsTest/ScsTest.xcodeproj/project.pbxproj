@@ -67,20 +67,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		AA63F81E21021B51005A9F8B /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		AA7186E3210215B400DD523D = {
 			isa = PBXGroup;
 			children = (
 				AA63F816210219F6005A9F8B /* Scs.xcodeproj */,
 				AA7186EE210215B400DD523D /* ScsTest */,
 				AA7186ED210215B400DD523D /* Products */,
-				AA63F81E21021B51005A9F8B /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
