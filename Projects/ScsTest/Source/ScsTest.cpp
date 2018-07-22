@@ -213,7 +213,7 @@ int main(int argc, char ** argv)
 		std::cout << "Press ESC key to exit client test...\n\n";
 		auto notify = std::make_shared<ClientNotify>();
 		auto server = CreateClient(port, address, notify);
-		while (GetChar() == 27)
+		while (GetChar() != 27)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -224,7 +224,7 @@ int main(int argc, char ** argv)
 		std::cout << "Press ESC key to exit server test...\n\n";
 		auto notify = std::make_shared<ServerNotify>();
 		auto server = CreateServer(port, notify);
-		while (GetChar() == 27)
+		while (GetChar() != 27)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
