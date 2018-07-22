@@ -168,7 +168,7 @@ public:
 		m_server = server;
 	}
 
-	void OnReceiveData(int32_t clientId, void * data, size_t bytes)
+	void OnReceiveData(int32_t clientId, void * data, size_t bytes) override
 	{ 
 		std::cout << "Received message of " << bytes << " bytes from client " << clientId << ".\n";
 		m_server->Send(data, bytes, clientId);

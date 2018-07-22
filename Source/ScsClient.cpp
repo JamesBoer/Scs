@@ -73,7 +73,7 @@ void Client::Run()
 		}
 		else if (m_status == Status::Connecting)
 		{
-			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(1))
+			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(5))
 			{
 				if (address->Next())
 				{
