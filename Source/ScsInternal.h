@@ -83,7 +83,10 @@ typedef __int64          ssize_t;
 #include <list>
 #include <queue>
 #include <mutex>
+#include <condition_variable>
 #include <assert.h>
+#include <cstring>
+#include <cstdarg>
 
 #include "ScsCommon.h"
 #include "ScsAddress.h"

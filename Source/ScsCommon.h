@@ -28,7 +28,13 @@ THE SOFTWARE.
 
 namespace Scs
 {
-	const uint32_t MAGIC_HEADER_VAL = 'scsm';
+	constexpr uint32_t MakeFourCC(char ch0, char ch1, char ch2, char ch3)
+	{
+		return ((uint32_t)(uint8_t)(ch0) | ((uint32_t)(uint8_t)(ch1) << 8 |
+			((uint32_t)(uint8_t)(ch2) << 16) | ((uint32_t)(uint8_t)(ch3) << 24)));
+	}
+    
+	const uint32_t MAGIC_HEADER_VAL = MakeFourCC('s', 'c', 's', 'm');
 	struct MessageHeader
 	{
 		uint32_t magic = MAGIC_HEADER_VAL;
