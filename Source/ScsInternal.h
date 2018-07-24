@@ -46,7 +46,7 @@ THE SOFTWARE.
 #define SocketLastError       WSAGetLastError()
 #define SCS_EWOULDBLOCK       WSAEWOULDBLOCK
 #define SCS_EINPROGRESS       WSAEINPROGRESS
-#define ScsInetNtoP           InetNtop
+#define ScsInetNtoP           InetNtopA
 
 
 // ssize_t is a POSIX type, not a general C++ type

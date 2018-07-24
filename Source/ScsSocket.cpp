@@ -130,7 +130,7 @@ bool Socket::IsInvalid() const
 	timeval tmval;
 	tmval.tv_sec = 0;
 	tmval.tv_usec = 1000;
-	int result = select(m_socket + 1, nullptr, nullptr, &socketSet, &tmval);
+	int result = select(static_cast<int>(m_socket + 1), nullptr, nullptr, &socketSet, &tmval);
 	int lastError = SocketLastError;
 	if (result == SOCKET_ERROR)
 	{
@@ -148,7 +148,7 @@ bool Socket::IsReadable() const
 	timeval tmval;
 	tmval.tv_sec = 0;
 	tmval.tv_usec = 1000;
-	int result = select(m_socket + 1, &socketSet, nullptr, nullptr, &tmval);
+	int result = select(static_cast<int>(m_socket + 1), &socketSet, nullptr, nullptr, &tmval);
 	int lastError = SocketLastError;
 	if (result == SOCKET_ERROR)
 	{
@@ -166,7 +166,7 @@ bool Socket::IsWritable() const
 	timeval tmval;
 	tmval.tv_sec = 0;
 	tmval.tv_usec = 1000;
-	int result = select(m_socket + 1, nullptr, &socketSet, nullptr, &tmval);
+	int result = select(static_cast<int>(m_socket + 1), nullptr, &socketSet, nullptr, &tmval);
 	int lastError = SocketLastError;
 	if (result == SOCKET_ERROR)
 	{
