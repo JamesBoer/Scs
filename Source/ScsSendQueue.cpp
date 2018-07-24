@@ -27,14 +27,27 @@ THE SOFTWARE.
 using namespace Scs;
 
 
-BufferPtr SendQueue::Pop()
+bool SendQueue::Empty() const
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	if (m_queue.empty())
-		return nullptr;
-	BufferPtr buffer = m_queue.front();
-	m_queue.pop_front();
-	return buffer;
+	return m_queue.empty();
+}
+
+bool SendQueue::Send(SocketPtr socket)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	assert(!m_queue.empty());
+	auto buffer = m_queue.front();
+	size_t bytesSent = 0;
+	if (!socket->Send(buffer->data(), buffer->size(), 0, &bytesSent))
+		return false;
+	m_bytesSent += bytesSent;
+	if (m_bytesSent == buffer->size())
+	{
+		m_queue.pop_front();
+		m_bytesSent = 0;
+	}
+	return true;
 }
 
 void SendQueue::Push(const void * data, size_t bytes)

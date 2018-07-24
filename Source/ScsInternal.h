@@ -28,6 +28,8 @@ THE SOFTWARE.
 
 #include "Scs.h"
 
+//#define SCS_TEST_MAX_SEND
+
 #ifdef SCS_WINDOWS
 
 #include <SDKDDKVer.h>
@@ -93,14 +95,18 @@ typedef __int64          ssize_t;
 
 #include "ScsCommon.h"
 #include "ScsAddress.h"
+#include "ScsSocket.h"
 #include "ScsSendQueue.h"
 #include "ScsReceiveQueue.h"
-#include "ScsSocket.h"
 #include "ScsClient.h"
 #include "ScsServer.h"
 
 namespace Scs
 {
+#ifdef SCS_TEST_MAX_SEND
+	const size_t SCS_TEST_MAX_SEND_SIZE = 4096;
+#endif
+
 	const size_t SEND_BUFFER_SIZE = 1024 * 64;
 	const uint32_t SEND_THROTTLE_MS = 10;
 	const size_t RECEIVE_BUFFER_SIZE = 1024 * 128;

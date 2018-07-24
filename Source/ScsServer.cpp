@@ -188,41 +188,33 @@ void Server::RunConnection(ClientConnectionPtr connection)
 		}
 
 		// Check first to see if we can write to the socket
-		if (connection->socket->IsWritable())
+		if (connection->socket->IsWritable() && !connection->sendQueue.Empty())
 		{
-			// Check to see if the send queue is empty
-			BufferPtr sendBuffer = connection->sendQueue.Pop();
-
-			// If the send queue isn't empty, go to work
-			if (sendBuffer)
+			if (!connection->sendQueue.Send(connection->socket))
 			{
-				// Send the data buffer to the server
-				size_t bytesSent = 0;
-				if (!connection->socket->Send(sendBuffer->data(), sendBuffer->size(), 0, &bytesSent))
-				{
-					LogWriteLine("Send to client %d failed. Closing connection.", connection->clientID);
-					connection->connected = false;
-					break;
-				}
-
-				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
-
-				// We need to throttle our connection transmission rate
-				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
+				LogWriteLine("Error sending data to client.  Shutting down connection.");
+				m_status = Status::Shutdown;
+				break;
 			}
+
+			// We need to throttle our connection transmission rate
+			std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
 		}
 
 		// Check for incoming data
 		if (connection->socket->IsReadable())
 		{
+			// Read data from socket
 			receiveBuffer->resize(receiveBuffer->capacity());
 			size_t bytesReceived = connection->socket->Receive(receiveBuffer->data(), receiveBuffer->size(), 0);
 			if (bytesReceived)
 			{
+				// Push data into the receive queue
 				receiveBuffer->resize(bytesReceived);
 				connection->receiveQueue.Push(receiveBuffer->data(), receiveBuffer->size());
 				receiveBuffer->clear();
+
+				// Process data in receive queue
 				BufferPtr receivedData = connection->receiveQueue.Pop();
 				while (receivedData)
 				{
@@ -232,7 +224,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 				}		
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);		
 			}
 		}
 	}

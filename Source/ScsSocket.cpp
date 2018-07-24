@@ -199,6 +199,9 @@ size_t Socket::Receive(void * data, size_t bytes, uint32_t flags)
 
 bool Socket::Send(void * data, size_t bytes, uint32_t flags, size_t * bytesSent)
 {
+#ifdef SCS_TEST_MAX_SEND
+	bytes = std::max(bytes, SCS_TEST_MAX_SEND_SIZE);
+#endif
 	assert(bytesSent);
 	ssize_t sent = send(m_socket, static_cast<const char*>(data), static_cast<int>(bytes), flags);
 	int lastError = SocketLastError;

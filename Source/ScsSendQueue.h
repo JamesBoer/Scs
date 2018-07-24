@@ -28,18 +28,19 @@ THE SOFTWARE.
 
 namespace Scs
 {
-
 	// Message send queue
 	class SendQueue
 	{
 	public:
-		BufferPtr Pop();
+		bool Empty() const;
+		bool Send(SocketPtr socket);
 		void Push(const void * data, size_t bytes);
 
 	private:
 
 		std::deque<BufferPtr, Allocator<BufferPtr>> m_queue;
-		std::mutex m_mutex;
+		mutable std::mutex m_mutex;
+		size_t m_bytesSent = 0;
 	};
 
 }; // namespace Scs

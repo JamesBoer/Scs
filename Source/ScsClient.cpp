@@ -67,9 +67,7 @@ void Client::Run()
 		{
 			m_socket = CreateSocket(address);
 			m_socket->SetNonBlocking(true);
-			//std::this_thread::sleep_for(std::chrono::seconds(2));
 			m_socket->Connect();
-			//std::this_thread::sleep_for(std::chrono::seconds(2));
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
 		}
@@ -105,38 +103,33 @@ void Client::Run()
 			m_notifier->OnUpdate();
 
 			// Check first to see if we can write to the socket
-			if (m_socket->IsWritable())
+			if (m_socket->IsWritable() && !m_sendQueue.Empty())
 			{
-				// Check to see if the send queue is empty
-				BufferPtr sendBuffer = m_sendQueue.Pop();
-
-				// If the send queue isn't empty, go to work
-				if (sendBuffer != nullptr)
+				if (!m_sendQueue.Send(m_socket))
 				{
-					// Send the data buffer to the server
-					size_t bytesSent = 0;
-					if (!m_socket->Send(sendBuffer->data(), sendBuffer->size(), 0, &bytesSent))
-					{
-						LogWriteLine("Error sending data to server.  Shutting down connection.");
-						m_status = Status::Shutdown;
-						break;
-					}
-
-					// We need to throttle our connection transmission rate
-					std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
+					LogWriteLine("Error sending data to server.  Shutting down connection.");
+					m_status = Status::Shutdown;
+					break;
 				}
+
+				// We need to throttle our connection transmission rate
+				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
 			}
 
 			// Check for incoming data
 			if (m_socket->IsReadable())
 			{
+				// Read data from socket
 				receiveBuffer->resize(receiveBuffer->capacity());
 				size_t bytesReceived = m_socket->Receive(receiveBuffer->data(), receiveBuffer->capacity(), 0);
 				if (bytesReceived)
 				{
+					// Push data into the receive queue
 					receiveBuffer->resize(bytesReceived);
 					receiveQueue.Push(receiveBuffer->data(), receiveBuffer->size());
 					receiveBuffer->clear();
+
+					// Process data in receive queue
 					BufferPtr receivedData = receiveQueue.Pop();
 					while (receivedData)
 					{
@@ -150,7 +143,6 @@ void Client::Run()
 
 	m_notifier->OnDisconnect();
 	m_socket = nullptr;
-
 }
 
 void Client::Send(const void * data, size_t bytes)
