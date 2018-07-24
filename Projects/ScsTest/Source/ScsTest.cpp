@@ -89,7 +89,7 @@ using namespace clara;
 
 
 const uint32_t MIN_PAYLOAD_SIZE = 4;
-const uint32_t MAX_PAYLOAD_SIZE = 1024 * 1024 * 4;
+const uint32_t MAX_PAYLOAD_SIZE = 1024 * 1024 * 16;
 
 const uint32_t MIN_PAYLOAD_INTERVAL_MS = 0;
 const uint32_t MAX_PAYLOAD_INTERVAL_MS = 2000;
@@ -146,7 +146,8 @@ private:
 	void Generate()
 	{
 		// Fill up a test buffer of random size with random data. 
-		auto size = std::uniform_int_distribution<uint32_t>(MIN_PAYLOAD_SIZE, MAX_PAYLOAD_SIZE)(m_rng);
+		auto rndVal = std::uniform_real_distribution<double>(0.0, 1.0f)(m_rng);
+		auto size = static_cast<uint32_t>((rndVal * rndVal * rndVal) * (MAX_PAYLOAD_SIZE - MIN_PAYLOAD_SIZE)) + MIN_PAYLOAD_SIZE;
 		m_buffer.clear();
 		m_buffer.reserve(size);
 		auto ud = std::uniform_int_distribution<uint32_t>(0, 255);
