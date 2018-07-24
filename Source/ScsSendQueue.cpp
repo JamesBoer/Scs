@@ -39,7 +39,7 @@ bool SendQueue::Send(SocketPtr socket)
 	assert(!m_queue.empty());
 	auto buffer = m_queue.front();
 	size_t bytesSent = 0;
-	if (!socket->Send(buffer->data(), buffer->size(), 0, &bytesSent))
+	if (!socket->Send(buffer->data() + m_bytesSent, buffer->size() - m_bytesSent, 0, &bytesSent))
 		return false;
 	m_bytesSent += bytesSent;
 	if (m_bytesSent == buffer->size())
