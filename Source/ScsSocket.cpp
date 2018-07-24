@@ -90,7 +90,7 @@ bool Socket::Bind(addrinfo * addr)
 	// Setup the TCP listening socket
 	int result = bind(m_socket, addr->ai_addr, (int)addr->ai_addrlen);
 	int lastError = SocketLastError;
-	if (result == SOCKET_ERROR && lastError != SCS_EWOULDBLOCK && lastError != SCS_EINPROGRESS)
+	if (result == SOCKET_ERROR && lastError != SCS_EWOULDBLOCK && lastError != EAGAIN && lastError != SCS_EINPROGRESS)
 	{
 		LogWriteLine("Bind failed with error: %d", lastError);
 		return false;
@@ -109,8 +109,10 @@ bool Socket::Connect()
 	// Connect to server.
 	addrinfo * addr = m_address->GetCurrent();
 	int result = connect(m_socket, addr->ai_addr, (int)addr->ai_addrlen);
+	if (result == 0)
+		return true;
 	int lastError = SocketLastError;
-	if (result == SOCKET_ERROR && lastError != SCS_EWOULDBLOCK && lastError != SCS_EINPROGRESS)
+	if (result == SOCKET_ERROR && lastError != SCS_EWOULDBLOCK && lastError != EAGAIN && lastError != SCS_EINPROGRESS)
 	{
 		LogWriteLine("Socket connect failed: %d", lastError);
 		return false;
@@ -128,7 +130,13 @@ bool Socket::IsInvalid() const
 	timeval tmval;
 	tmval.tv_sec = 0;
 	tmval.tv_usec = 1000;
-	int result = select(0, nullptr, nullptr, &socketSet, &tmval);
+	int result = select(m_socket + 1, nullptr, nullptr, &socketSet, &tmval);
+	int lastError = SocketLastError;
+	if (result == SOCKET_ERROR)
+	{
+		LogWriteLine("Socket IsInvalid() failed: %d", lastError);
+		return false;		
+	}
 	return (result == 1) ? true : false;
 }
 
@@ -140,7 +148,13 @@ bool Socket::IsReadable() const
 	timeval tmval;
 	tmval.tv_sec = 0;
 	tmval.tv_usec = 1000;
-	int result = select(0, &socketSet, nullptr, nullptr, &tmval);
+	int result = select(m_socket + 1, &socketSet, nullptr, nullptr, &tmval);
+	int lastError = SocketLastError;
+	if (result == SOCKET_ERROR)
+	{
+		LogWriteLine("Socket IsReadable() failed: %d", lastError);
+		return false;		
+	}
 	return (result == 1) ? true : false;
 }
 
@@ -152,7 +166,13 @@ bool Socket::IsWritable() const
 	timeval tmval;
 	tmval.tv_sec = 0;
 	tmval.tv_usec = 1000;
-	int result = select(0, nullptr, &socketSet, nullptr, &tmval);
+	int result = select(m_socket + 1, nullptr, &socketSet, nullptr, &tmval);
+	int lastError = SocketLastError;
+	if (result == SOCKET_ERROR)
+	{
+		LogWriteLine("Socket IsWritable() failed: %d", lastError);
+		return false;		
+	}
 	return (result == 1) ? true : false;
 }
 
@@ -161,7 +181,7 @@ bool Socket::Listen()
 	// Connect to server.
 	int result = listen(m_socket, SOMAXCONN);
 	int lastError = SocketLastError;
-	if (result == SOCKET_ERROR && lastError != SCS_EWOULDBLOCK && lastError != SCS_EINPROGRESS)
+	if (result == SOCKET_ERROR && lastError != SCS_EWOULDBLOCK && lastError != EAGAIN && lastError != SCS_EINPROGRESS)
 	{
 		LogWriteLine("Socket listen failed: %d", lastError);
 		return false;

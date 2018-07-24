@@ -35,6 +35,8 @@ namespace Scs
 		Address(const String & port, const String & address);
 		Address(const String & port, bool passive);
 		~Address();
+        
+        void Log() const;
 
 		addrinfo * GetHead() const { return m_address; }
 		addrinfo * GetCurrent() const { return m_current; }

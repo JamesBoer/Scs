@@ -61,13 +61,15 @@ void Client::Run()
 	while (m_status != Status::Shutdown)
 	{
 		// We don't want to burn too much CPU while idling.
-		std::this_thread::sleep_for(std::chrono::microseconds(1));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 		if (m_status == Status::Initial)
 		{
 			m_socket = CreateSocket(address);
 			m_socket->SetNonBlocking(true);
+			//std::this_thread::sleep_for(std::chrono::seconds(2));
 			m_socket->Connect();
+			//std::this_thread::sleep_for(std::chrono::seconds(2));
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
 		}
@@ -78,6 +80,7 @@ void Client::Run()
 				if (address->Next())
 				{
 					m_status = Status::Initial;
+					statusTime = std::chrono::system_clock::now();
 					LogWriteLine("Client failed to connect - trying next address.");
 				}
 				else
