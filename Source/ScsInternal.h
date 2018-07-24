@@ -46,6 +46,7 @@ THE SOFTWARE.
 #define SocketLastError       WSAGetLastError()
 #define SCS_EWOULDBLOCK       WSAEWOULDBLOCK
 #define SCS_EINPROGRESS       WSAEINPROGRESS
+#define ScsInetNtoP           InetNtop
 
 
 // ssize_t is a POSIX type, not a general C++ type
@@ -63,6 +64,7 @@ typedef __int64          ssize_t;
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <errno.h>
 
 #define SOCKET int
@@ -75,6 +77,7 @@ typedef __int64          ssize_t;
 #define SocketLastError		   errno
 #define SCS_EWOULDBLOCK        EWOULDBLOCK
 #define SCS_EINPROGRESS        EINPROGRESS
+#define ScsInetNtoP            inet_ntop
 
 #endif
 

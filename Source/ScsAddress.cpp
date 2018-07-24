@@ -35,9 +35,9 @@ Address::Address(const String & port, const String & address)
 	m_address = NULL;
 	addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
+	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
+	//hints.ai_protocol = IPPROTO_TCP;
 
 	// Resolve the local address (if required) and port to be used by the socket
 	const char * addressStr = address.size() > 0 ? address.c_str() : nullptr;
@@ -47,6 +47,7 @@ Address::Address(const String & port, const String & address)
 		LogWriteLine("getaddrinfo failed: %d", result);
 	}
 	m_current = m_address;
+	Log();
 }
 
 Address::Address(const String & port, bool passive)
@@ -57,9 +58,9 @@ Address::Address(const String & port, bool passive)
 	m_address = NULL;
 	addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
+	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
+	//hints.ai_protocol = IPPROTO_TCP;
 	if (passive)
 		hints.ai_flags = AI_PASSIVE;
 
@@ -70,11 +71,45 @@ Address::Address(const String & port, bool passive)
 		LogWriteLine("getaddrinfo failed: %d", result);
 	}
 	m_current = m_address;
+	Log();
 }
 
 Address::~Address()
 {
 	freeaddrinfo(m_address);
+}
+
+void Address::Log() const
+{
+	LogWriteLine("Logging addresses...");
+	char ipstr[INET6_ADDRSTRLEN];
+	auto curr = m_address;
+	while (curr)
+	{
+        void *addr;
+        const char *ipver;		
+        // get the pointer to the address itself,
+        // different fields in IPv4 and IPv6:
+        if (curr->ai_family == AF_INET) // IPv4
+		{ 
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)curr->ai_addr;
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+        } 
+		else // IPv6
+		{ 
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)curr->ai_addr;
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+        }
+
+        // convert the IP to a string and print it:
+        ScsInetNtoP(curr->ai_family, addr, ipstr, countof(ipstr));
+        LogWriteLine("  %s: %s", ipver, ipstr);
+	
+		// Advance to the next address
+		curr = curr->ai_next;
+	}
 }
 
 bool Address::Next()

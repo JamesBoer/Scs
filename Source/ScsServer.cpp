@@ -65,8 +65,10 @@ void Server::DisconnectClient(int32_t clientId)
 
 void Server::RunListener()
 {
+	LogWriteLine("Server::RunListener()");
+			
 	m_stateCondition.notify_one();
-
+	
 	// Notify that we've started listening
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
@@ -83,6 +85,7 @@ void Server::RunListener()
 		{
 			// Create address structure, create socket, and set
 			// socket to non-blocking mode
+			LogWriteLine("Creating address...");
 			AddressPtr address = CreateAddress(m_port, true);
 			m_listenerSocket = CreateSocket(address);
 			m_listenerSocket->SetNonBlocking(true);
