@@ -188,17 +188,23 @@ void Server::RunConnection(ClientConnectionPtr connection)
 		}
 
 		// Check first to see if we can write to the socket
-		if (connection->socket->IsWritable() && !connection->sendQueue.Empty())
+		if (connection->socket->IsWritable())
 		{
-			if (!connection->sendQueue.Send(connection->socket))
+			if (!connection->sendQueue.Empty())
 			{
-				LogWriteLine("Error sending data to client.  Shutting down connection.");
-				m_status = Status::Shutdown;
-				break;
-			}
+				if (!connection->sendQueue.Send(connection->socket))
+				{
+					LogWriteLine("Error sending data to client.  Shutting down connection.");
+					connection->connected = false;
+					break;
+				}
 
-			// We need to throttle our connection transmission rate
-			std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
+				// We need to throttle our connection transmission rate
+				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
+
+				// Reset timeout
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
+			}
 		}
 
 		// Check for incoming data

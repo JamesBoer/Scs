@@ -29,9 +29,6 @@ THE SOFTWARE.
 namespace Scs
 {
 
-	const size_t MAX_CONNECTIONS = 128;
-	const size_t TIMEOUT_SECONDS = 30;
-
 	class Server : public IServer
 	{
 	private:

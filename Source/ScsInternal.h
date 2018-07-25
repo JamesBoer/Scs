@@ -107,6 +107,8 @@ namespace Scs
 	const size_t SCS_TEST_MAX_SEND_SIZE = 4096;
 #endif
 
+	const size_t MAX_CONNECTIONS = 128;
+	const size_t TIMEOUT_SECONDS = 30;
 	const size_t SEND_BUFFER_SIZE = 1024 * 64;
 	const uint32_t SEND_THROTTLE_MS = 10;
 	const size_t RECEIVE_BUFFER_SIZE = 1024 * 128;
