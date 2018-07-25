@@ -88,8 +88,8 @@ using namespace Scs;
 using namespace clara;
 
 
-const uint32_t MIN_PAYLOAD_SIZE = 4;
-const uint32_t MAX_PAYLOAD_SIZE = 1024 * 1024 * 16;
+const uint32_t MIN_PAYLOAD_SIZE = 1;
+const uint32_t MAX_PAYLOAD_SIZE = 1024 * 1024 * 4;
 
 const uint32_t MIN_PAYLOAD_INTERVAL_MS = 0;
 const uint32_t MAX_PAYLOAD_INTERVAL_MS = 2000;

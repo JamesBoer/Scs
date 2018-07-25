@@ -73,7 +73,7 @@ void Client::Run()
 		}
 		else if (m_status == Status::Connecting)
 		{
-			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(5))
+			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(CLIENT_CONNECTION_TIMEOUT_SECONDS))
 			{
 				if (address->Next())
 				{
@@ -103,17 +103,20 @@ void Client::Run()
 			m_notifier->OnUpdate();
 
 			// Check first to see if we can write to the socket
-			if (m_socket->IsWritable() && !m_sendQueue.Empty())
+			if (m_socket->IsWritable())
 			{
-				if (!m_sendQueue.Send(m_socket))
+				if (!m_sendQueue.Empty())
 				{
-					LogWriteLine("Error sending data to server.  Shutting down connection.");
-					m_status = Status::Shutdown;
-					break;
-				}
+					if (!m_sendQueue.Send(m_socket))
+					{
+						LogWriteLine("Error sending data to server.  Shutting down connection.");
+						m_status = Status::Shutdown;
+						break;
+					}
 
-				// We need to throttle our connection transmission rate
-				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
+					// We need to throttle our connection transmission rate
+					std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
+				}
 			}
 
 			// Check for incoming data
