@@ -94,7 +94,7 @@ const uint32_t MAX_PAYLOAD_SIZE = 1024 * 1024 * 4;
 const uint32_t MIN_PAYLOAD_INTERVAL_MS = 0;
 const uint32_t MAX_PAYLOAD_INTERVAL_MS = 2000;
 
-class ClientNotify : public IClientNotify
+class ClientNotify
 {
 public:
 	ClientNotify()
@@ -108,12 +108,12 @@ public:
 		m_rng.seed(static_cast<uint32_t>(time));
 	}
 
-	void OnConnect(IClient * client) override 
+	void OnConnect(IClient * client) 
 	{
 		m_client = client;
 	}
 
-	void OnReceiveData(void * data, size_t bytes) override
+	void OnReceiveData(void * data, size_t bytes)
 	{
 		// Check to see if the data received is equal to what was sent out
 		auto cmpVal = memcmp(data, m_buffer.data(), std::min(bytes, m_buffer.size()));
@@ -126,7 +126,7 @@ public:
 		m_nextPayload = std::chrono::system_clock::now() + std::chrono::milliseconds(intervalTimeMs);
 	}
 
-	void OnUpdate() override
+	void OnUpdate()
 	{
 		// If we have buffer data, we're waiting for a response from the server
 		if (!m_buffer.empty())
@@ -162,22 +162,22 @@ private:
 	std::chrono::time_point<std::chrono::system_clock> m_nextPayload;
 };
 
-class ServerNotify : public IServerNotify
+class ServerNotify
 {
 public:
-	void OnStartListening(IServer * server) override
+	void OnStartListening()
 	{
-		m_server = server;
+		//m_server = server;
 	}
 
-	void OnReceiveData(int32_t clientId, void * data, size_t bytes) override
+	void OnReceiveData(int32_t clientId, void * data, size_t bytes)
 	{ 
 		std::cout << "Received message of " << bytes << " bytes from client " << clientId << ".\n";
-		m_server->Send(data, bytes, clientId);
+		//m_server->Send(data, bytes, clientId);
 	}
 
 private:
-	IServer * m_server = nullptr;
+	//IServer * m_server = nullptr;
 };
 
 
@@ -214,7 +214,28 @@ int main(int argc, char ** argv)
 	{
 		std::cout << "Press ESC key to exit client test...\n\n";
 		auto notify = std::make_shared<ClientNotify>();
-		auto server = CreateClient(port, address, notify);
+		ClientParams params;
+		params.address = address;
+		params.port = port;
+		auto client = CreateClient(params);
+
+		// Handler for when client connects
+		client->OnConnect([cli = ToWeak(client)]
+		{
+			auto c = cli.lock();
+			if (c)
+				c->Send("Test", 5);
+		});
+
+		// Handler for data received from server
+		client->OnReceiveData([](void * data, size_t bytes)
+		{
+			std::cout << "Received message of " << bytes << " bytes from server.\n";
+		});
+
+		// Attempt to make a connection
+		client->Connect();
+
 		while (GetChar() != 27)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -225,7 +246,22 @@ int main(int argc, char ** argv)
 	{
 		std::cout << "Press ESC key to exit server test...\n\n";
 		auto notify = std::make_shared<ServerNotify>();
-		auto server = CreateServer(port, notify);
+		ServerParams params;
+		params.port = port;
+		auto server = CreateServer(params);
+
+		// Handler for incoming data
+		server->OnReceiveData([s = ToWeak(server)](ClientID clientId, void * data, size_t bytes)
+		{
+			std::cout << "Received message of " << bytes << " bytes from client " << clientId << ".\n";
+			auto server = s.lock();
+			if (server)
+				server->Send(clientId, data, bytes);
+		});
+
+		// Start listening for client connections
+		server->StartListening();
+
 		while (GetChar() != 27)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));

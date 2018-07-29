@@ -47,64 +47,102 @@ THE SOFTWARE.
 
 namespace Scs
 {
-	template<typename T>
-	constexpr const int unused(const T &) { return 0; }
-
-	template<typename T, size_t s>
-	constexpr size_t countof(T(&)[s]) { return s; }
+	template <typename T>
+	std::weak_ptr<T> ToWeak(const std::shared_ptr<T>& ptr)
+	{
+		return std::weak_ptr<T>(ptr);
+	}
 
 	// Client
 	class IClient;
+	using ClientPtr = std::shared_ptr<IClient>;
 
-	class IClientNotify 
+	/// Prototype for client server connection notification
+	using ClientOnConnectFn = std::function<void(void)>;
+
+	/// Prototype for client disconnection notification
+	using ClientOnDisconnectFn = std::function<void(void)>;
+
+	/// Prototype for receive data notification
+	using ClientOnReceiveDataFn = std::function<void(void *, size_t)>;
+
+	/// Parameters for client creation
+	/**
+	A struct containing parameters related to client creation
+	\sa CreateClient()
+	*/
+	struct ClientParams
 	{
-	public:
-		virtual ~IClientNotify() {}
-		virtual void OnConnect(IClient * client)				{ unused(client); }
-		virtual void OnDisconnect()								{ }
-		virtual void OnReceiveData(void * data, size_t bytes)	{ unused(data); unused(bytes); }
-		virtual void OnUpdate()									{ }
+		std::string_view port;
+		std::string_view address;
 	};
-
-	using ClientNotifyPtr = std::shared_ptr<IClientNotify>;
 
 	class IClient
 	{
 	public:
 		virtual ~IClient() {}
+
+		virtual void Connect() = 0;
+		virtual bool IsConnected() const = 0;
+		virtual bool HasError() const = 0;
+
+		virtual void OnConnect(ClientOnConnectFn onConnect) = 0;
+		virtual void OnDisconnect(ClientOnDisconnectFn onDisconnect) = 0;
+		virtual void OnReceiveData(ClientOnReceiveDataFn onReceiveData) = 0;
+
 		virtual void Send(const void * data, size_t bytes) = 0;
 	};
 
-	using ClientPtr = std::shared_ptr<IClient>;
-	ClientPtr CreateClient(std::string_view port, std::string_view address, ClientNotifyPtr notify);
+	ClientPtr CreateClient(const ClientParams & params);
 
 	// Server
 	class IServer;
 	using ServerPtr = std::shared_ptr<IServer>;
+	using ClientID = int32_t;
 
-	class IServerNotify
+
+	/// Prototype for server start listening notification
+	using ServerOnStartListeningFn = std::function<void (void)>;
+
+	/// Prototype for server client connection notification
+	using ServerOnConnectFn = std::function<void(ClientID)>;
+
+	/// Prototype for server client disconnection notification
+	using ServerOnDisconnectFn = std::function<void(ClientID)>;
+
+	/// Prototype for receive data notification
+	using ServerOnReceiveDataFn = std::function<void(ClientID, void *, size_t)>;
+
+	/// Parameters for server creation
+	/**
+	A struct containing parameters related to server creation
+	\sa CreateServer()
+	*/
+	struct ServerParams
 	{
-	public:
-		virtual ~IServerNotify() {}
-		virtual void OnStartListening(IServer * server)								{ unused(server); }
-		virtual void OnConnect(int32_t clientId)									{ unused(clientId); }
-		virtual void OnDisconnect(int32_t clientId)									{ unused(clientId); }
-		virtual void OnReceiveData(int32_t clientId, void * data, size_t bytes)		{ unused(clientId); unused(data); unused(bytes); }
-		virtual void OnUpdate(int32_t clientId)										{ unused(clientId); }
+		std::string_view port;
 	};
-
-	using ServerNotifyPtr = std::shared_ptr<IServerNotify>;
 
 	class IServer
 	{
 	public:
 		virtual ~IServer() {}
-		virtual void DisconnectClient(int32_t clientId) = 0;
-		virtual void Send(const void * data, size_t bytes, int32_t clientId) = 0;
+
+		virtual void StartListening() = 0;
+		virtual bool IsListening() const = 0;
+		virtual bool HasError() const = 0;
+
+		virtual void OnStartListening(ServerOnStartListeningFn onStartListening) = 0;
+		virtual void OnConnect(ServerOnConnectFn onConnect) = 0;
+		virtual void OnDisconnect(ServerOnDisconnectFn onDisconnect) = 0;
+		virtual void OnReceiveData(ServerOnReceiveDataFn onReceiveData) = 0;
+
+		virtual void DisconnectClient(ClientID clientId) = 0;
+		virtual void Send(ClientID clientId, const void * data, size_t bytes) = 0;
 		virtual void SendAll(const void * data, size_t bytes) = 0;
 	};
 
-	ServerPtr CreateServer(std::string_view port, ServerNotifyPtr notify);
+	ServerPtr CreateServer(const ServerParams & params);
   
 	/// Prototype for global memory allocation function callback
 	using AllocFn = std::function<void *(size_t)>;

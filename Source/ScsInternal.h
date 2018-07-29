@@ -89,7 +89,8 @@ typedef __int64          ssize_t;
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <assert.h>
+#include <atomic>
+#include <cassert>
 #include <cstring>
 #include <cstdarg>
 

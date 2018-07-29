@@ -26,20 +26,25 @@ THE SOFTWARE.
 
 using namespace Scs;
 
-Client::Client(std::string_view port, std::string_view address, ClientNotifyPtr notify) :
+Client::Client(const ClientParams & params) :
 	m_status(Status::Initial),
-	m_port(port),
-	m_address(address),
-	m_notifier(notify)
+	m_error(false),
+	m_port(params.port),
+	m_address(params.address)
 {
-	std::thread t([this]() { this->Run(); });
-	m_thread.swap(t);
 }
 
 Client::~Client()
 {
 	m_status = Status::Shutdown;
-	m_thread.join();
+	if (m_thread.joinable())
+		m_thread.join();
+}
+
+void Client::Connect()
+{
+	std::thread t([this]() { this->Run(); });
+	m_thread.swap(t);
 }
 
 void Client::Run()
@@ -67,7 +72,13 @@ void Client::Run()
 		{
 			m_socket = CreateSocket(address);
 			m_socket->SetNonBlocking(true);
-			m_socket->Connect();
+			if (!m_socket->Connect())
+			{
+				LogWriteLine("Error connecting client socket.");
+				m_status = Status::Shutdown;
+				m_error = true;
+				break;
+			}
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
 		}
@@ -91,17 +102,22 @@ void Client::Run()
 			{
 				if (m_socket->IsWritable())
 				{
-					m_notifier->OnConnect(this);
+					if (m_onConnect)
+						m_onConnect();
 					m_status = Status::Ready;
 					LogWriteLine("Client established connection with server.");
 				}
 			}
 		}
+		else if (m_status == Status::ConnectionTimeout)
+		{
+			// TODO: Wait some period and try again for a limited number of tries.  For now, we just fail
+			LogWriteLine("Client retry not yet implemented.  Shutting down client.");
+			m_error = true;
+			m_status = Status::Shutdown;
+		}
 		else if (m_status == Status::Ready)
 		{
-			// Only start update notifications after connection
-			m_notifier->OnUpdate();
-
 			// Check first to see if we can write to the socket
 			if (m_socket->IsWritable())
 			{
@@ -136,7 +152,8 @@ void Client::Run()
 					BufferPtr receivedData = receiveQueue.Pop();
 					while (receivedData)
 					{
-						m_notifier->OnReceiveData(receivedData->data(), receivedData->size());
+						if (m_onReceiveData)
+							m_onReceiveData(receivedData->data(), receivedData->size());
 						receivedData = receiveQueue.Pop();
 					}		
 				}
@@ -144,7 +161,8 @@ void Client::Run()
 		}
 	}
 
-	m_notifier->OnDisconnect();
+	if (m_onDisconnect)
+		m_onDisconnect();
 	m_socket = nullptr;
 }
 
@@ -153,7 +171,7 @@ void Client::Send(const void * data, size_t bytes)
 	m_sendQueue.Push(data, bytes);
 }
 
-ClientPtr Scs::CreateClient(std::string_view port, std::string_view address, ClientNotifyPtr notify)
+ClientPtr Scs::CreateClient(const ClientParams & params)
 {
-	return std::allocate_shared<Client>(Allocator<Client>(), port, address, notify);
+	return std::allocate_shared<Client>(Allocator<Client>(), params);
 }

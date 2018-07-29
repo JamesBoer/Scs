@@ -27,28 +27,23 @@ THE SOFTWARE.
 using namespace Scs;
 
 
-Server::Server(std::string_view port, ServerNotifyPtr notify) :
-	m_port(port),
+Server::Server(const ServerParams & params) :
+	m_port(params.port),
 	m_maxClientId(0),
 	m_status(Status::Initial),
-	m_notifier(notify)
+	m_error(false)
 {
-	std::thread t([this]() { this->RunListener(); });
-	m_thread.swap(t);
-
-	// Lock until the async initialize function is finished
-	std::unique_lock<std::mutex> lock(m_connectionListMutex);
-	m_stateCondition.wait_for(lock, std::chrono::milliseconds(1), [this]() { return m_status != Status::Listening;  });
 }
 
 Server::~Server()
 {
-	m_status = Status::Shutdown;
-	m_thread.join();
 	LogWriteLine("Shutting down server.");
+	m_status = Status::Shutdown;
+	if (m_thread.joinable())
+		m_thread.join();
 }
 
-void Server::DisconnectClient(int32_t clientId)
+void Server::DisconnectClient(ClientID clientId)
 {
 	std::lock_guard<std::mutex> lock(m_connectionListMutex);
 	if (m_connectionList.empty())
@@ -70,9 +65,10 @@ void Server::RunListener()
 	m_stateCondition.notify_one();
 	
 	// Notify that we've started listening
+	if (m_onStartListening)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_notifier->OnStartListening(this);
+		m_onStartListening();
 	}
 
 	// Loop until we get a shutdown request
@@ -93,7 +89,9 @@ void Server::RunListener()
 			// Bind the socket to the specified address
 			if (m_listenerSocket->Bind(address->GetCurrent()) == false)
 			{
+				LogWriteLine("Error binding sotck to specified address.");
 				m_status = Status::Shutdown;
+				m_error = true;
 			}
 			else
 			{
@@ -103,7 +101,9 @@ void Server::RunListener()
 			// Listen to this socket
 			if (m_listenerSocket->Listen() == false)
 			{
+				LogWriteLine("Error listening to specified socket.");
 				m_status = Status::Shutdown;
+				m_error = true;
 			}
 			else
 			{
@@ -134,9 +134,10 @@ void Server::RunListener()
 					LogWriteLine("Server accepted connection request from client id %d.", connection->clientID);
 
 					// Now lock and create a new thread for this connection
+					if (m_onConnect)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_notifier->OnConnect(connection->clientID);
+						m_onConnect(connection->clientID);
 					}
 					std::thread t([this, connection]() { this->RunConnection(connection); });
 					connection->thread.swap(t);			
@@ -181,12 +182,6 @@ void Server::RunConnection(ClientConnectionPtr connection)
 			break;
 		}
 
-		// Per-client update callback
-		{
-			std::lock_guard<std::mutex> lock(m_notifierMutex);
-			m_notifier->OnUpdate(connection->clientID);
-		}
-
 		// Check first to see if we can write to the socket
 		if (connection->socket->IsWritable())
 		{
@@ -224,8 +219,11 @@ void Server::RunConnection(ClientConnectionPtr connection)
 				BufferPtr receivedData = connection->receiveQueue.Pop();
 				while (receivedData)
 				{
-					std::lock_guard<std::mutex> lock(m_notifierMutex);
-					m_notifier->OnReceiveData(connection->clientID, receivedData->data(), receivedData->size());
+					if (m_onReceiveData)
+					{
+						std::lock_guard<std::mutex> lock(m_notifierMutex);
+						m_onReceiveData(connection->clientID, receivedData->data(), receivedData->size());
+					}
 					receivedData = connection->receiveQueue.Pop();
 				}		
 
@@ -238,13 +236,16 @@ void Server::RunConnection(ClientConnectionPtr connection)
 	// We're shutting down, so make sure all sockets are disconnected
 	// and the connection data structure is removed from the connection
 	// list and deleted.
-	std::lock_guard<std::mutex> lock(m_notifierMutex);
-	m_notifier->OnDisconnect(connection->clientID);
+	if (m_onDisconnect)
+	{
+		std::lock_guard<std::mutex> lock(m_notifierMutex);
+		m_onDisconnect(connection->clientID);
+	}
 	connection->socket = nullptr;
 	LogWriteLine("Closing client %d connection thread.", connection->clientID);
 }
 
-void Server::Send(const void * data, size_t bytes, int32_t clientId)
+void Server::Send(ClientID clientId, const void * data, size_t bytes)
 {
 	std::lock_guard<std::mutex> lock(m_connectionListMutex);
 	if (m_connectionList.empty())
@@ -271,7 +272,17 @@ void Server::SendAll(const void * data, size_t bytes)
 	}
 }
 
-ServerPtr Scs::CreateServer(std::string_view name, ServerNotifyPtr notify)
+void Server::StartListening()
 {
-	return std::allocate_shared<Server>(Allocator<Server>(), name, notify);
+	std::thread t([this]() { this->RunListener(); });
+	m_thread.swap(t);
+
+	// Lock until the async initialize function is finished
+	std::unique_lock<std::mutex> lock(m_connectionListMutex);
+	m_stateCondition.wait_for(lock, std::chrono::milliseconds(1), [this]() { return m_status != Status::Listening;  });
+}
+
+ServerPtr Scs::CreateServer(const ServerParams & params)
+{
+	return std::allocate_shared<Server>(Allocator<Server>(), params);
 }

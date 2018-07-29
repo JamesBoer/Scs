@@ -32,14 +32,22 @@ namespace Scs
 	class Client : public IClient
 	{
 	public:
-		Client(std::string_view port, std::string_view address, ClientNotifyPtr notify);
-		virtual ~Client();
+		Client(const ClientParams & params);
+		virtual ~Client() override;
 
-		virtual void Run();
+		void Connect() override;
+		bool IsConnected() const override { return m_status == Status::Connecting ? true : false; }
+		bool HasError() const override { return m_error; }
 
-		void Send(const void * data, size_t bytes);
+		void OnConnect(ClientOnConnectFn onConnect) override { assert(m_status == Status::Initial); m_onConnect = onConnect; }
+		void OnDisconnect(ClientOnDisconnectFn onDisconnect) override { assert(m_status == Status::Initial); m_onDisconnect = onDisconnect; }
+		void OnReceiveData(ClientOnReceiveDataFn onReceiveData) override { assert(m_status == Status::Initial); m_onReceiveData = onReceiveData; }
+
+		void Send(const void * data, size_t bytes) override;
 
 	private:
+		void Run();
+
 		enum class Status
 		{
 			Initial,
@@ -51,11 +59,14 @@ namespace Scs
 
 		SocketPtr m_socket;
 		std::thread m_thread;
-		ClientNotifyPtr m_notifier;
+		ClientOnConnectFn m_onConnect;
+		ClientOnDisconnectFn m_onDisconnect;
+		ClientOnReceiveDataFn m_onReceiveData;
 		bool m_shutdown;
 		String m_port;
 		String m_address;
-		Status m_status;
+		std::atomic<Status> m_status;
+		std::atomic_bool m_error;
 		SendQueue m_sendQueue;
 	};
 

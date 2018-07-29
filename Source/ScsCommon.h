@@ -28,6 +28,12 @@ THE SOFTWARE.
 
 namespace Scs
 {
+	template<typename T>
+	constexpr const int unused(const T &) { return 0; }
+
+	template<typename T, size_t s>
+	constexpr size_t countof(T(&)[s]) { return s; }
+
 	constexpr uint32_t MakeFourCC(char ch0, char ch1, char ch2, char ch3)
 	{
 		return ((uint32_t)(uint8_t)(ch0) | ((uint32_t)(uint8_t)(ch1) << 8 |

@@ -42,7 +42,7 @@ namespace Scs
 			const Server & server;
 			std::thread thread;
 			SocketPtr socket;
-			int32_t clientID;
+			ClientID clientID;
 			bool connected;
 			SendQueue sendQueue;
 			ReceiveQueue receiveQueue;
@@ -51,17 +51,26 @@ namespace Scs
 		using ClientConnectionPtr = std::shared_ptr<ClientConnection>;
 
 	public:
-		Server(std::string_view port, ServerNotifyPtr notify);
-		virtual ~Server();
+		Server(const ServerParams & params);
+		virtual ~Server() override;
 
-		virtual void RunListener();
-		void RunConnection(ClientConnectionPtr connection);
+		void StartListening() override;
+		bool IsListening() const override { return m_status == Status::Listening ? true : false; }
+		bool HasError() const override { return m_error; }
 
-		void DisconnectClient(int32_t clientId) override;
-		void Send(const void * data, size_t bytes, int32_t clientId) override;
+		void OnStartListening(ServerOnStartListeningFn onStartListening) override { assert(m_status == Status::Initial);  m_onStartListening = onStartListening; }
+		void OnConnect(ServerOnConnectFn onConnect) override { assert(m_status == Status::Initial);  m_onConnect = onConnect; }
+		void OnDisconnect(ServerOnDisconnectFn onDisconnect) override { assert(m_status == Status::Initial);  m_onDisconnect = onDisconnect; }
+		void OnReceiveData(ServerOnReceiveDataFn onReceiveData) override { assert(m_status == Status::Initial);  m_onReceiveData = onReceiveData; }
+
+		void DisconnectClient(ClientID clientId) override;
+		void Send(ClientID clientId, const void * data, size_t bytes) override;
 		void SendAll(const void * data, size_t bytes) override;
 
 	private:
+		void RunListener();
+		void RunConnection(ClientConnectionPtr connection);
+
 		using ClientConnectionList = std::list<ClientConnectionPtr, Allocator<ClientConnectionPtr>>;
 		enum class Status
 		{
@@ -75,11 +84,15 @@ namespace Scs
 		SocketPtr m_listenerSocket;
 		std::thread m_thread;
 		std::condition_variable m_stateCondition;
-		ServerNotifyPtr m_notifier;
+		ServerOnStartListeningFn m_onStartListening;
+		ServerOnConnectFn m_onConnect;
+		ServerOnDisconnectFn m_onDisconnect;
+		ServerOnReceiveDataFn m_onReceiveData;
 		std::mutex m_notifierMutex;
 		String m_port;
-		int32_t m_maxClientId;
-		Status m_status;
+		ClientID m_maxClientId;
+		std::atomic<Status> m_status;
+		std::atomic_bool m_error;
 	};
 
 }; // namespace Scs
