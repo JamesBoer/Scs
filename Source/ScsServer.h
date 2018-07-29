@@ -62,6 +62,7 @@ namespace Scs
 		void OnConnect(ServerOnConnectFn onConnect) override { assert(m_status == Status::Initial);  m_onConnect = onConnect; }
 		void OnDisconnect(ServerOnDisconnectFn onDisconnect) override { assert(m_status == Status::Initial);  m_onDisconnect = onDisconnect; }
 		void OnReceiveData(ServerOnReceiveDataFn onReceiveData) override { assert(m_status == Status::Initial);  m_onReceiveData = onReceiveData; }
+		void OnUpdate(ServerOnUpdateFn onUpdate) override { assert(m_status == Status::Initial);  m_onUpdate = onUpdate; }
 
 		void DisconnectClient(ClientID clientId) override;
 		void Send(ClientID clientId, const void * data, size_t bytes) override;
@@ -88,6 +89,7 @@ namespace Scs
 		ServerOnConnectFn m_onConnect;
 		ServerOnDisconnectFn m_onDisconnect;
 		ServerOnReceiveDataFn m_onReceiveData;
+		ServerOnUpdateFn m_onUpdate;
 		std::mutex m_notifierMutex;
 		String m_port;
 		ClientID m_maxClientId;

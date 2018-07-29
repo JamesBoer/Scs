@@ -66,6 +66,9 @@ namespace Scs
 	/// Prototype for receive data notification
 	using ClientOnReceiveDataFn = std::function<void(void *, size_t)>;
 
+	/// Prototype for client update notification
+	using ClientOnUpdateFn = std::function<void(void)>;
+
 	/// Parameters for client creation
 	/**
 	A struct containing parameters related to client creation
@@ -89,6 +92,7 @@ namespace Scs
 		virtual void OnConnect(ClientOnConnectFn onConnect) = 0;
 		virtual void OnDisconnect(ClientOnDisconnectFn onDisconnect) = 0;
 		virtual void OnReceiveData(ClientOnReceiveDataFn onReceiveData) = 0;
+		virtual void OnUpdate(ClientOnUpdateFn onUpdate) = 0;
 
 		virtual void Send(const void * data, size_t bytes) = 0;
 	};
@@ -113,6 +117,9 @@ namespace Scs
 	/// Prototype for receive data notification
 	using ServerOnReceiveDataFn = std::function<void(ClientID, void *, size_t)>;
 
+	/// Prototype for server update notification
+	using ServerOnUpdateFn = std::function<void(void)>;
+
 	/// Parameters for server creation
 	/**
 	A struct containing parameters related to server creation
@@ -136,6 +143,7 @@ namespace Scs
 		virtual void OnConnect(ServerOnConnectFn onConnect) = 0;
 		virtual void OnDisconnect(ServerOnDisconnectFn onDisconnect) = 0;
 		virtual void OnReceiveData(ServerOnReceiveDataFn onReceiveData) = 0;
+		virtual void OnUpdate(ServerOnUpdateFn onUpdate) = 0;
 
 		virtual void DisconnectClient(ClientID clientId) = 0;
 		virtual void Send(ClientID clientId, const void * data, size_t bytes) = 0;

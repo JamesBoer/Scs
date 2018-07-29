@@ -182,6 +182,12 @@ void Server::RunConnection(ClientConnectionPtr connection)
 			break;
 		}
 
+		if (m_onUpdate)
+		{
+			std::lock_guard<std::mutex> lock(m_notifierMutex);
+			m_onUpdate();
+		}
+
 		// Check first to see if we can write to the socket
 		if (connection->socket->IsWritable())
 		{

@@ -42,6 +42,7 @@ namespace Scs
 		void OnConnect(ClientOnConnectFn onConnect) override { assert(m_status == Status::Initial); m_onConnect = onConnect; }
 		void OnDisconnect(ClientOnDisconnectFn onDisconnect) override { assert(m_status == Status::Initial); m_onDisconnect = onDisconnect; }
 		void OnReceiveData(ClientOnReceiveDataFn onReceiveData) override { assert(m_status == Status::Initial); m_onReceiveData = onReceiveData; }
+		void OnUpdate(ClientOnUpdateFn onUpdate) override { assert(m_status == Status::Initial); m_onUpdate = onUpdate; }
 
 		void Send(const void * data, size_t bytes) override;
 
@@ -52,9 +53,9 @@ namespace Scs
 		{
 			Initial,
 			Connecting,
+			ConnectionTimeout,
 			Ready,
 			Shutdown,
-			ConnectionTimeout,
 		};
 
 		SocketPtr m_socket;
@@ -62,6 +63,7 @@ namespace Scs
 		ClientOnConnectFn m_onConnect;
 		ClientOnDisconnectFn m_onDisconnect;
 		ClientOnReceiveDataFn m_onReceiveData;
+		ClientOnUpdateFn m_onUpdate;
 		bool m_shutdown;
 		String m_port;
 		String m_address;

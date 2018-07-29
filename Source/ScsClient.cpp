@@ -118,6 +118,9 @@ void Client::Run()
 		}
 		else if (m_status == Status::Ready)
 		{
+			if (m_onUpdate)
+				m_onUpdate();
+
 			// Check first to see if we can write to the socket
 			if (m_socket->IsWritable())
 			{

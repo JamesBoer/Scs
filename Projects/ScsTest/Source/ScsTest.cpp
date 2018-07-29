@@ -94,92 +94,18 @@ const uint32_t MAX_PAYLOAD_SIZE = 1024 * 1024 * 4;
 const uint32_t MIN_PAYLOAD_INTERVAL_MS = 0;
 const uint32_t MAX_PAYLOAD_INTERVAL_MS = 2000;
 
-class ClientNotify
+
+static void Generate(std::mt19937 & rng, std::vector<uint8_t> & buffer)
 {
-public:
-	ClientNotify()
-	{
-		// Start payload timer
-		auto now = std::chrono::system_clock::now();
-		m_nextPayload = now;
-
-		// Seed random number generator
-		uint64_t time = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-		m_rng.seed(static_cast<uint32_t>(time));
-	}
-
-	void OnConnect(IClient * client) 
-	{
-		m_client = client;
-	}
-
-	void OnReceiveData(void * data, size_t bytes)
-	{
-		// Check to see if the data received is equal to what was sent out
-		auto cmpVal = memcmp(data, m_buffer.data(), std::min(bytes, m_buffer.size()));
-		if (cmpVal == 0)
-			std::cout << "Received identical message response from server.\n";
-		else
-			std::cout << "Received unrecognized message response from server.\n";
-		m_buffer.clear();
-		auto intervalTimeMs = std::uniform_int_distribution<uint32_t>(MIN_PAYLOAD_INTERVAL_MS, MAX_PAYLOAD_INTERVAL_MS)(m_rng);
-		m_nextPayload = std::chrono::system_clock::now() + std::chrono::milliseconds(intervalTimeMs);
-	}
-
-	void OnUpdate()
-	{
-		// If we have buffer data, we're waiting for a response from the server
-		if (!m_buffer.empty())
-			return;
-
-		// Check to see if payload timer has elapsed, and send more random data to the server
-		auto now = std::chrono::system_clock::now();
-		if (now >= m_nextPayload)
-		{
-			Generate();
-			m_client->Send(m_buffer.data(), m_buffer.size());
-			std::cout << "Sending random buffer of " << m_buffer.size() << " bytes to server.\n";
-		}
-	}
-
-private:
-	void Generate()
-	{
-		// Fill up a test buffer of random size with random data. 
-		auto rndVal = std::uniform_real_distribution<double>(0.0, 1.0f)(m_rng);
-		auto size = static_cast<uint32_t>((rndVal * rndVal * rndVal) * (MAX_PAYLOAD_SIZE - MIN_PAYLOAD_SIZE)) + MIN_PAYLOAD_SIZE;
-		m_buffer.clear();
-		m_buffer.reserve(size);
-		auto ud = std::uniform_int_distribution<uint32_t>(0, 255);
-		for (uint32_t i = 0; i < size; ++i)
-			m_buffer.push_back(static_cast<uint8_t>(ud(m_rng)));
-	}
-
-private:
-	IClient * m_client = nullptr;
-	std::mt19937 m_rng;
-	std::vector<uint8_t> m_buffer;
-	std::chrono::time_point<std::chrono::system_clock> m_nextPayload;
-};
-
-class ServerNotify
-{
-public:
-	void OnStartListening()
-	{
-		//m_server = server;
-	}
-
-	void OnReceiveData(int32_t clientId, void * data, size_t bytes)
-	{ 
-		std::cout << "Received message of " << bytes << " bytes from client " << clientId << ".\n";
-		//m_server->Send(data, bytes, clientId);
-	}
-
-private:
-	//IServer * m_server = nullptr;
-};
-
+	// Fill up a test buffer of random size with random data. 
+	auto rndVal = std::uniform_real_distribution<double>(0.0, 1.0f)(rng);
+	auto size = static_cast<uint32_t>((rndVal * rndVal * rndVal) * (MAX_PAYLOAD_SIZE - MIN_PAYLOAD_SIZE)) + MIN_PAYLOAD_SIZE;
+	buffer.clear();
+	buffer.reserve(size);
+	auto ud = std::uniform_int_distribution<uint32_t>(0, 255);
+	for (uint32_t i = 0; i < size; ++i)
+		buffer.push_back(static_cast<uint8_t>(ud(rng)));
+}
 
 int main(int argc, char ** argv)
 {
@@ -213,29 +139,76 @@ int main(int argc, char ** argv)
 	if (!address.empty())
 	{
 		std::cout << "Press ESC key to exit client test...\n\n";
-		auto notify = std::make_shared<ClientNotify>();
+
+		// Data for generating payloads with random content and timings
+		std::mt19937 rng;
+		std::vector<uint8_t> buffer;
+
+		// Start payload timer
+		auto now = std::chrono::system_clock::now();
+		auto nextPayload = now;
+
+		// Seed random number generator
+		uint64_t time = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+		rng.seed(static_cast<uint32_t>(time));
+
+		// Create a client
 		ClientParams params;
 		params.address = address;
 		params.port = port;
 		auto client = CreateClient(params);
 
 		// Handler for when client connects
-		client->OnConnect([cli = ToWeak(client)]
+		client->OnConnect([cli = ToWeak(client), &rng, &buffer]
 		{
 			auto c = cli.lock();
 			if (c)
-				c->Send("Test", 5);
+			{
+				Generate(rng, buffer);
+				c->Send(buffer.data(), buffer.size());
+				std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
+			}
 		});
 
 		// Handler for data received from server
-		client->OnReceiveData([](void * data, size_t bytes)
+		client->OnReceiveData([&buffer, &nextPayload, &rng](void * data, size_t bytes)
 		{
-			std::cout << "Received message of " << bytes << " bytes from server.\n";
+			// Check to see if the data received is equal to what was sent out
+			auto cmpVal = memcmp(data, buffer.data(), std::min(bytes, buffer.size()));
+			if (cmpVal == 0)
+				std::cout << "Received identical message response from server.\n";
+			else
+				std::cout << "Received unrecognized message response from server.\n";
+			buffer.clear();
+			auto intervalTimeMs = std::uniform_int_distribution<uint32_t>(MIN_PAYLOAD_INTERVAL_MS, MAX_PAYLOAD_INTERVAL_MS)(rng);
+			nextPayload = std::chrono::system_clock::now() + std::chrono::milliseconds(intervalTimeMs);
+		});
+
+		// Handler for per-cycle update
+		client->OnUpdate([cli = ToWeak(client), &nextPayload, &rng, &buffer]()
+		{
+			// If we don't have buffer data, fill it and send it to the server.  Otherwise, we're waiting
+			// for a response from the server.
+			if (buffer.empty())
+			{
+				// Check to see if payload timer has elapsed, and send more random data to the server
+				auto now = std::chrono::system_clock::now();
+				if (now >= nextPayload)
+				{
+					Generate(rng, buffer);
+					auto client = cli.lock();
+					if (!client)
+						return;
+					client->Send(buffer.data(), buffer.size());
+					std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
+				}
+			}
 		});
 
 		// Attempt to make a connection
 		client->Connect();
 
+		// Wait until ESC is pressed
 		while (GetChar() != 27)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -245,7 +218,6 @@ int main(int argc, char ** argv)
 	else
 	{
 		std::cout << "Press ESC key to exit server test...\n\n";
-		auto notify = std::make_shared<ServerNotify>();
 		ServerParams params;
 		params.port = port;
 		auto server = CreateServer(params);
@@ -262,6 +234,7 @@ int main(int argc, char ** argv)
 		// Start listening for client connections
 		server->StartListening();
 
+		// Wait until ESC is pressed
 		while (GetChar() != 27)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
