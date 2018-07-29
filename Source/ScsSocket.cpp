@@ -173,6 +173,8 @@ bool Socket::IsWritable() const
 		LogWriteLine("Socket IsWritable() failed: %d", lastError);
 		return false;		
 	}
+    //if (lastError != 0)
+    //    return false;
 	return (result == 1) ? true : false;
 }
 

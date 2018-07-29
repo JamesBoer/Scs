@@ -81,6 +81,10 @@ void Client::Run()
 			}
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
+            
+            // On some macOS, without this slight delay after a connect attempt, the socket returns immediate
+            // success on IsWriteable(), even if no connection is present.
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		else if (m_status == Status::Connecting)
 		{
@@ -102,10 +106,10 @@ void Client::Run()
 			{
 				if (m_socket->IsWritable())
 				{
+                    m_status = Status::Ready;
+                    LogWriteLine("Client established connection with server.");
 					if (m_onConnect)
 						m_onConnect();
-					m_status = Status::Ready;
-					LogWriteLine("Client established connection with server.");
 				}
 			}
 		}
