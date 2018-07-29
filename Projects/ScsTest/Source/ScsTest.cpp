@@ -109,6 +109,7 @@ static void Generate(std::mt19937 & rng, std::vector<uint8_t> & buffer)
 
 int main(int argc, char ** argv)
 {
+	// Handle command-line options
 	std::string port;
 	std::string address;
 	bool showHelp = false;
@@ -132,6 +133,7 @@ int main(int argc, char ** argv)
 		return 0;
 	}
 
+	// Initialize client-server library
 	InitParams params;
 	Initialize(params);
 
@@ -159,13 +161,13 @@ int main(int argc, char ** argv)
 		auto client = CreateClient(params);
 
 		// Handler for when client connects
-		client->OnConnect([cli = ToWeak(client), &rng, &buffer]
+		client->OnConnect([c = ToWeak(client), &rng, &buffer]
 		{
-			auto c = cli.lock();
-			if (c)
+			auto client = c.lock();
+			if (client)
 			{
 				Generate(rng, buffer);
-				c->Send(buffer.data(), buffer.size());
+				client->Send(buffer.data(), buffer.size());
 				std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
 			}
 		});
@@ -185,7 +187,7 @@ int main(int argc, char ** argv)
 		});
 
 		// Handler for per-cycle update
-		client->OnUpdate([cli = ToWeak(client), &nextPayload, &rng, &buffer]()
+		client->OnUpdate([c = ToWeak(client), &nextPayload, &rng, &buffer]()
 		{
 			// If we don't have buffer data, fill it and send it to the server.  Otherwise, we're waiting
 			// for a response from the server.
@@ -196,11 +198,12 @@ int main(int argc, char ** argv)
 				if (now >= nextPayload)
 				{
 					Generate(rng, buffer);
-					auto client = cli.lock();
-					if (!client)
-						return;
-					client->Send(buffer.data(), buffer.size());
-					std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
+					auto client = c.lock();
+					if (client)
+					{
+						client->Send(buffer.data(), buffer.size());
+						std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
+					}
 				}
 			}
 		});
@@ -237,6 +240,7 @@ int main(int argc, char ** argv)
 		while (GetChar() != 27) {}
 	}
 
+	// Shut down client-server library
 	ShutDown();
 
     return 0;
