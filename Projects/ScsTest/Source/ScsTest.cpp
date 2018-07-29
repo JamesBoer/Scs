@@ -209,15 +209,14 @@ int main(int argc, char ** argv)
 		client->Connect();
 
 		// Wait until ESC is pressed
-		while (GetChar() != 27)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
+		while (GetChar() != 27) {}
 	}
 	// Otherwise, start up a server
 	else
 	{
 		std::cout << "Press ESC key to exit server test...\n\n";
+
+		// Create a server
 		ServerParams params;
 		params.port = port;
 		auto server = CreateServer(params);
@@ -235,10 +234,7 @@ int main(int argc, char ** argv)
 		server->StartListening();
 
 		// Wait until ESC is pressed
-		while (GetChar() != 27)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
+		while (GetChar() != 27) {}
 	}
 
 	ShutDown();
