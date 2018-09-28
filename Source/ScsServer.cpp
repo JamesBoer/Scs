@@ -113,6 +113,13 @@ void Server::RunListener()
 		}
 		else if (m_status == Status::Listening)
 		{
+			// Update callback function called while listening
+			if (m_onUpdate)
+			{
+				std::lock_guard<std::mutex> lock(m_notifierMutex);
+				m_onUpdate();
+			}
+
 			// Check to see if we've established a connection
 			if (m_listenerSocket->IsReadable())
 			{
@@ -180,12 +187,6 @@ void Server::RunConnection(ClientConnectionPtr connection)
 			LogWriteLine("Client %d timed out. Closing connection.", connection->clientID);
 			connection->connected = false;
 			break;
-		}
-
-		if (m_onUpdate)
-		{
-			std::lock_guard<std::mutex> lock(m_notifierMutex);
-			m_onUpdate();
 		}
 
 		// Check first to see if we can write to the socket
