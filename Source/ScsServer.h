@@ -77,7 +77,6 @@ namespace Scs
 		{
 			Initial,
 			Listening,
-			Shutdown
 		};
 
 		ClientConnectionList m_connectionList;
@@ -94,7 +93,8 @@ namespace Scs
 		String m_port;
 		ClientID m_maxClientId;
 		std::atomic<Status> m_status;
-		std::atomic_bool m_error;
+        std::atomic_bool m_shutDown = false;
+		std::atomic_bool m_error = false;
 	};
 
 }; // namespace Scs
