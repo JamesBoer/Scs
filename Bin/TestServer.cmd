@@ -1,0 +1,1 @@
+..\Projects\ScsTest\WinPC\ScsTest\x64\Debug\ScsTest.exe --port 5555

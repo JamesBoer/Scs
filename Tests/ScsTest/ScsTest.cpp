@@ -27,8 +27,8 @@ THE SOFTWARE.
 #include <chrono>
 #include <thread>
 #include <cstring>
-#include "clara.hpp"
-#include "../../../Source/Scs.h"
+#include "../../External/Clara/clara.hpp"
+#include "../../Source/Scs.h"
 
 #ifdef SCS_WINDOWS
 #include <conio.h>
@@ -176,7 +176,7 @@ int main(int argc, char ** argv)
 		client->OnReceiveData([&buffer, &nextPayload, &rng](void * data, size_t bytes)
 		{
 			// Check to see if the data received is equal to what was sent out
-			auto cmpVal = memcmp(data, buffer.data(), std::min(bytes, buffer.size()));
+			auto cmpVal = std::memcmp(data, buffer.data(), std::min(bytes, buffer.size()));
 			if (cmpVal == 0)
 				std::cout << "Received identical message response from server.\n";
 			else
