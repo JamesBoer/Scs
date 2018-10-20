@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [0.0.3] - 2017-10-19
+
+- Project reorganization
+- Fixed server hang if shutdown occurs immediately
+
 ## [0.0.2] - 2017-07-29
 
 - Reworked APIs to use std::function callbacks instead of interfaces
