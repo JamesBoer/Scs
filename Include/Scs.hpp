@@ -885,7 +885,6 @@ namespace Scs
 		{
 			Initial,
 			Listening,
-			Shutdown
 		};
 
 		ClientConnectionList m_connectionList;
@@ -902,7 +901,8 @@ namespace Scs
 		String m_port;
 		ClientID m_maxClientId;
 		std::atomic<Status> m_status;
-		std::atomic_bool m_error;
+        std::atomic_bool m_shutDown = false;
+		std::atomic_bool m_error = false;
 	};
 
 }; // namespace Scs
@@ -1658,7 +1658,7 @@ Server::Server(const ServerParams & params) :
 Server::~Server()
 {
 	LogWriteLine("Shutting down server.");
-	m_status = Status::Shutdown;
+    m_shutDown = true;
 	if (m_thread.joinable())
 		m_thread.join();
 }
@@ -1692,7 +1692,7 @@ void Server::RunListener()
 	}
 
 	// Loop until we get a shutdown request
-	while (m_status != Status::Shutdown)
+	while (!m_shutDown)
 	{
 		// We don't want to burn too much CPU while idling.
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -1710,7 +1710,7 @@ void Server::RunListener()
 			if (m_listenerSocket->Bind(address->GetCurrent()) == false)
 			{
 				LogWriteLine("Error binding sotck to specified address.");
-				m_status = Status::Shutdown;
+                m_shutDown = true;
 				m_error = true;
 			}
 			else
@@ -1722,8 +1722,8 @@ void Server::RunListener()
 			if (m_listenerSocket->Listen() == false)
 			{
 				LogWriteLine("Error listening to specified socket.");
-				m_status = Status::Shutdown;
-				m_error = true;
+                m_shutDown = true;
+                m_error = true;
 			}
 			else
 			{
@@ -1765,9 +1765,8 @@ void Server::RunListener()
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
 						m_onConnect(connection->clientID);
-					}
-					std::thread t([this, connection]() { this->RunConnection(connection); });
-					connection->thread.swap(t);			
+					}					
+					connection->thread = std::thread([this, connection]() { this->RunConnection(connection); });
 					std::lock_guard<std::mutex> lock(m_connectionListMutex);
 					m_connectionList.push_back(connection);		
 				}
@@ -1795,7 +1794,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 
 	// Each client connection runs in a separate thread, controlled
 	// by this function.
-	while (connection->connected && m_status != Status::Shutdown)
+	while (connection->connected && !m_shutDown)
 	{
 		// Don't burn too much CPU while idling
 		std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -1901,8 +1900,7 @@ void Server::SendAll(const void * data, size_t bytes)
 
 void Server::StartListening()
 {
-	std::thread t([this]() { this->RunListener(); });
-	m_thread.swap(t);
+	m_thread = std::thread([this]() { this->RunListener(); });
 
 	// Lock until the async initialize function is finished
 	std::unique_lock<std::mutex> lock(m_connectionListMutex);
