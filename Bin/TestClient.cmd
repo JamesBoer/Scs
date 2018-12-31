@@ -1,1 +1,1 @@
-..\Projects\ScsTest\WinPC\ScsTest\x64\Debug\ScsTest.exe --port 5555 --address 127.0.0.1
+..\Build\Debug\ScsTest.exe --port 5555 --address 127.0.0.1
