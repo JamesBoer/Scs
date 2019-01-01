@@ -24,15 +24,17 @@ THE SOFTWARE.
 
 #include "ScsInternal.h"
 
+#ifdef SCS_WINDOWS
 // FD_SET macro triggers this warning
 #pragma warning( disable : 4127 )
+#endif // SCS_WINDOWS
 
 using namespace Scs;
 
 
 Socket::Socket(AddressPtr address) :
-	m_address(address),
-	m_socket(INVALID_SOCKET)
+	m_socket(INVALID_SOCKET),
+	m_address(address)
 {
 	// Create the SOCKET
 	if (!m_address)
@@ -55,8 +57,8 @@ Socket::Socket(AddressPtr address) :
 }
 
 Socket::Socket(AddressPtr address, SOCKET sckt) :
-	m_address(address),
-	m_socket(sckt)
+	m_socket(sckt),
+	m_address(address)
 {
 }
 
@@ -135,7 +137,7 @@ bool Socket::IsInvalid() const
 	if (result == SOCKET_ERROR)
 	{
 		LogWriteLine("Socket IsInvalid() failed: %d", lastError);
-		return false;		
+		return false;
 	}
 	return (result == 1) ? true : false;
 }
@@ -153,7 +155,7 @@ bool Socket::IsReadable() const
 	if (result == SOCKET_ERROR)
 	{
 		LogWriteLine("Socket IsReadable() failed: %d", lastError);
-		return false;		
+		return false;
 	}
 	return (result == 1) ? true : false;
 }
@@ -171,7 +173,7 @@ bool Socket::IsWritable() const
 	if (result == SOCKET_ERROR)
 	{
 		LogWriteLine("Socket IsWritable() failed: %d", lastError);
-		return false;		
+		return false;
 	}
 	return (result == 1) ? true : false;
 }

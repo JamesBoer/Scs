@@ -151,7 +151,7 @@ namespace Scs
 	};
 
 	ServerPtr CreateServer(const ServerParams & params);
-  
+
 	/// Prototype for global memory allocation function callback
 	using AllocFn = std::function<void *(size_t)>;
 
@@ -172,7 +172,7 @@ namespace Scs
 	*/
 	struct InitParams
 	{
-		/// Logging function 
+		/// Logging function
 		LogFn logFn;
 		/// Alloc memory function
 		AllocFn allocFn;
@@ -191,7 +191,7 @@ namespace Scs
 	bool Initialize(const InitParams & params);
 	void ShutDown();
 
-}; // namespace Scs
+} // namespace Scs
 
 
 #endif // SCS_H____

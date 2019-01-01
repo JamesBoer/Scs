@@ -35,7 +35,7 @@ namespace Scs
 		Address(const String & port, const String & address);
 		Address(const String & port, bool passive);
 		~Address();
-        
+
         void Log() const;
 
 		addrinfo * GetHead() const { return m_address; }
@@ -53,6 +53,6 @@ namespace Scs
 	AddressPtr CreateAddress(const String & port, const String & address);
 	AddressPtr CreateAddress(const String & port, bool passive);
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_ADDRESS_H____

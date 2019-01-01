@@ -43,6 +43,6 @@ namespace Scs
 		size_t m_bytesSent = 0;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_SEND_QUEUE_H____

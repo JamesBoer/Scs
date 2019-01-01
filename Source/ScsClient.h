@@ -64,7 +64,6 @@ namespace Scs
 		ClientOnDisconnectFn m_onDisconnect;
 		ClientOnReceiveDataFn m_onReceiveData;
 		ClientOnUpdateFn m_onUpdate;
-		bool m_shutdown;
 		String m_port;
 		String m_address;
 		std::atomic<Status> m_status;
@@ -72,6 +71,6 @@ namespace Scs
 		SendQueue m_sendQueue;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_CLIENT_H____

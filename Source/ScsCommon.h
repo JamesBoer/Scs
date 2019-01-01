@@ -29,7 +29,7 @@ THE SOFTWARE.
 namespace Scs
 {
 	template<typename T>
-	constexpr const int unused(const T &) { return 0; }
+	constexpr int unused(const T &) { return 0; }
 
 	template<typename T, size_t s>
 	constexpr size_t countof(T(&)[s]) { return s; }
@@ -39,7 +39,7 @@ namespace Scs
 		return ((uint32_t)(uint8_t)(ch0) | ((uint32_t)(uint8_t)(ch1) << 8 |
 			((uint32_t)(uint8_t)(ch2) << 16) | ((uint32_t)(uint8_t)(ch3) << 24)));
 	}
-    
+
 	const uint32_t MAGIC_HEADER_VAL = MakeFourCC('s', 'c', 's', 'm');
 	struct MessageHeader
 	{
@@ -55,7 +55,7 @@ namespace Scs
 	void * Realloc(void * ptr, size_t bytes);
 	void Free(void * ptr);
 
-	// SCS allocator for use in STL containers																										
+	// SCS allocator for use in STL containers
 	template <typename T>
 	class Allocator
 	{
@@ -69,14 +69,14 @@ namespace Scs
 		typedef T value_type;
 
 		Allocator() throw() {};
-		Allocator(const Allocator &) throw() { };
+		Allocator(const Allocator &) throw() { }
 
 		template<typename U>
-		Allocator(const Allocator<U>&) throw() { };
+		Allocator(const Allocator<U>&) throw() { }
 
 		template<typename U>
-		Allocator & operator = (const Allocator<U> & other) { return *this; }
-		Allocator & operator = (const Allocator & other) { return *this; }
+		Allocator & operator = ([[maybe_unused]] const Allocator<U> & other) { return *this; }
+		Allocator & operator = ([[maybe_unused]] const Allocator & other) { return *this; }
 		~Allocator() {}
 
 		template <typename U>
@@ -112,6 +112,6 @@ namespace Scs
 
 	BufferPtr CreateBuffer();
 
-};
+}
 
 #endif // SCS_COMMON_H____

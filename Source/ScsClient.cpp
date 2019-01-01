@@ -27,10 +27,10 @@ THE SOFTWARE.
 using namespace Scs;
 
 Client::Client(const ClientParams & params) :
-	m_status(Status::Initial),
-	m_error(false),
 	m_port(params.port),
-	m_address(params.address)
+	m_address(params.address),
+	m_status(Status::Initial),
+	m_error(false)
 {
 }
 
@@ -81,7 +81,7 @@ void Client::Run()
 			}
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
-            
+
             // On some macOS, without this slight delay after a connect attempt, the socket returns immediate
             // success on IsWriteable(), even if no connection is present.
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -162,7 +162,7 @@ void Client::Run()
 						if (m_onReceiveData)
 							m_onReceiveData(receivedData->data(), receivedData->size());
 						receivedData = receiveQueue.Pop();
-					}		
+					}
 				}
 			}
 		}

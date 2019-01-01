@@ -44,6 +44,6 @@ namespace Scs
 		BufferPtr m_receiveBuffer;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_RECEIVE_QUEUE_H____
