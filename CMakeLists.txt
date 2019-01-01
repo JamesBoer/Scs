@@ -42,13 +42,6 @@ function(scs_build_executable project_name source_list is_linked is_startup)
 		target_link_libraries(${project_name} Scs)
 	endif()
 
-	# Add pthreads
-	if(UNIX AND NOT APPLE)
-		set(THREADS_PREFER_PTHREAD_FLAG ON)
-		find_package(Threads REQUIRED)
-		target_link_libraries(${project_name} Threads::Threads)
-	endif()
-
 	# Create IDE folder structure
 	scs_set_folders("${source_list}" Source)
 
@@ -85,6 +78,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Create library as project name
 add_library(${PROJECT_NAME} ${scs_source_list})
+
+# Add pthreads for Linux builds
+if(UNIX AND NOT APPLE)
+	set(THREADS_PREFER_PTHREAD_FLAG ON)
+	find_package(Threads REQUIRED)
+	target_link_libraries(${PROJECT_NAME} Threads::Threads)
+endif()
 
 # Set warning level
 if(MSVC)
