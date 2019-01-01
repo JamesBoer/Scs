@@ -211,7 +211,7 @@ namespace Scs
 	};
 
 	ServerPtr CreateServer(const ServerParams & params);
-  
+
 	/// Prototype for global memory allocation function callback
 	using AllocFn = std::function<void *(size_t)>;
 
@@ -232,7 +232,7 @@ namespace Scs
 	*/
 	struct InitParams
 	{
-		/// Logging function 
+		/// Logging function
 		LogFn logFn;
 		/// Alloc memory function
 		AllocFn allocFn;
@@ -251,10 +251,11 @@ namespace Scs
 	bool Initialize(const InitParams & params);
 	void ShutDown();
 
-}; // namespace Scs
+} // namespace Scs
 
 
 #endif // SCS_H____
+
 
 // end --- Scs.h --- 
 
@@ -359,7 +360,7 @@ THE SOFTWARE.
 namespace Scs
 {
 	template<typename T>
-	constexpr const int unused(const T &) { return 0; }
+	constexpr int unused(const T &) { return 0; }
 
 	template<typename T, size_t s>
 	constexpr size_t countof(T(&)[s]) { return s; }
@@ -369,7 +370,7 @@ namespace Scs
 		return ((uint32_t)(uint8_t)(ch0) | ((uint32_t)(uint8_t)(ch1) << 8 |
 			((uint32_t)(uint8_t)(ch2) << 16) | ((uint32_t)(uint8_t)(ch3) << 24)));
 	}
-    
+
 	const uint32_t MAGIC_HEADER_VAL = MakeFourCC('s', 'c', 's', 'm');
 	struct MessageHeader
 	{
@@ -385,7 +386,7 @@ namespace Scs
 	void * Realloc(void * ptr, size_t bytes);
 	void Free(void * ptr);
 
-	// SCS allocator for use in STL containers																										
+	// SCS allocator for use in STL containers
 	template <typename T>
 	class Allocator
 	{
@@ -399,14 +400,14 @@ namespace Scs
 		typedef T value_type;
 
 		Allocator() throw() {};
-		Allocator(const Allocator &) throw() { };
+		Allocator(const Allocator &) throw() { }
 
 		template<typename U>
-		Allocator(const Allocator<U>&) throw() { };
+		Allocator(const Allocator<U>&) throw() { }
 
 		template<typename U>
-		Allocator & operator = (const Allocator<U> & other) { return *this; }
-		Allocator & operator = (const Allocator & other) { return *this; }
+		Allocator & operator = ([[maybe_unused]] const Allocator<U> & other) { return *this; }
+		Allocator & operator = ([[maybe_unused]] const Allocator & other) { return *this; }
 		~Allocator() {}
 
 		template <typename U>
@@ -442,9 +443,10 @@ namespace Scs
 
 	BufferPtr CreateBuffer();
 
-};
+}
 
 #endif // SCS_COMMON_H____
+
 
 // end --- ScsCommon.h --- 
 
@@ -489,7 +491,7 @@ namespace Scs
 		Address(const String & port, const String & address);
 		Address(const String & port, bool passive);
 		~Address();
-        
+
         void Log() const;
 
 		addrinfo * GetHead() const { return m_address; }
@@ -507,9 +509,10 @@ namespace Scs
 	AddressPtr CreateAddress(const String & port, const String & address);
 	AddressPtr CreateAddress(const String & port, bool passive);
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_ADDRESS_H____
+
 
 // end --- ScsAddress.h --- 
 
@@ -594,15 +597,16 @@ namespace Scs
 	private:
 		SOCKET m_socket;
 		AddressPtr m_address;
-		addrinfo * m_currAddress;
+		//addrinfo * m_currAddress;
 	};
 
 	SocketPtr CreateSocket(AddressPtr address);
 	SocketPtr CreateSocket(AddressPtr address, SOCKET sckt);
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_SOCKET_H____
+
 
 // end --- ScsSocket.h --- 
 
@@ -655,7 +659,7 @@ namespace Scs
 		size_t m_bytesSent = 0;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_SEND_QUEUE_H____
 
@@ -712,9 +716,10 @@ namespace Scs
 		BufferPtr m_receiveBuffer;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_RECEIVE_QUEUE_H____
+
 
 // end --- ScsReceiveQueue.h --- 
 
@@ -788,7 +793,6 @@ namespace Scs
 		ClientOnDisconnectFn m_onDisconnect;
 		ClientOnReceiveDataFn m_onReceiveData;
 		ClientOnUpdateFn m_onUpdate;
-		bool m_shutdown;
 		String m_port;
 		String m_address;
 		std::atomic<Status> m_status;
@@ -796,9 +800,10 @@ namespace Scs
 		SendQueue m_sendQueue;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_CLIENT_H____
+
 
 // end --- ScsClient.h --- 
 
@@ -845,7 +850,7 @@ namespace Scs
 			ClientConnection(const Server & svr) :
 				server(svr),
 				clientID(-1),
-				connected(false) 
+				connected(false)
 				{}
 			const Server & server;
 			std::thread thread;
@@ -905,10 +910,11 @@ namespace Scs
 		std::atomic_bool m_error = false;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 
 #endif // SCS_SERVER_H____
+
 
 // end --- ScsServer.h --- 
 
@@ -1144,10 +1150,10 @@ THE SOFTWARE.
 using namespace Scs;
 
 Client::Client(const ClientParams & params) :
-	m_status(Status::Initial),
-	m_error(false),
 	m_port(params.port),
-	m_address(params.address)
+	m_address(params.address),
+	m_status(Status::Initial),
+	m_error(false)
 {
 }
 
@@ -1198,7 +1204,7 @@ void Client::Run()
 			}
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
-            
+
             // On some macOS, without this slight delay after a connect attempt, the socket returns immediate
             // success on IsWriteable(), even if no connection is present.
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -1279,7 +1285,7 @@ void Client::Run()
 						if (m_onReceiveData)
 							m_onReceiveData(receivedData->data(), receivedData->size());
 						receivedData = receiveQueue.Pop();
-					}		
+					}
 				}
 			}
 		}
@@ -1943,15 +1949,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifdef SCS_WINDOWS
 // FD_SET macro triggers this warning
 #pragma warning( disable : 4127 )
+#endif // SCS_WINDOWS
 
 using namespace Scs;
 
 
 Socket::Socket(AddressPtr address) :
-	m_address(address),
-	m_socket(INVALID_SOCKET)
+	m_socket(INVALID_SOCKET),
+	m_address(address)
 {
 	// Create the SOCKET
 	if (!m_address)
@@ -1974,8 +1982,8 @@ Socket::Socket(AddressPtr address) :
 }
 
 Socket::Socket(AddressPtr address, SOCKET sckt) :
-	m_address(address),
-	m_socket(sckt)
+	m_socket(sckt),
+	m_address(address)
 {
 }
 
@@ -2054,7 +2062,7 @@ bool Socket::IsInvalid() const
 	if (result == SOCKET_ERROR)
 	{
 		LogWriteLine("Socket IsInvalid() failed: %d", lastError);
-		return false;		
+		return false;
 	}
 	return (result == 1) ? true : false;
 }
@@ -2072,7 +2080,7 @@ bool Socket::IsReadable() const
 	if (result == SOCKET_ERROR)
 	{
 		LogWriteLine("Socket IsReadable() failed: %d", lastError);
-		return false;		
+		return false;
 	}
 	return (result == 1) ? true : false;
 }
@@ -2090,7 +2098,7 @@ bool Socket::IsWritable() const
 	if (result == SOCKET_ERROR)
 	{
 		LogWriteLine("Socket IsWritable() failed: %d", lastError);
-		return false;		
+		return false;
 	}
 	return (result == 1) ? true : false;
 }
