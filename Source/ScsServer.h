@@ -37,7 +37,7 @@ namespace Scs
 			ClientConnection(const Server & svr) :
 				server(svr),
 				clientID(-1),
-				connected(false) 
+				connected(false)
 				{}
 			const Server & server;
 			std::thread thread;
@@ -97,7 +97,7 @@ namespace Scs
 		std::atomic_bool m_error = false;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 
 #endif // SCS_SERVER_H____

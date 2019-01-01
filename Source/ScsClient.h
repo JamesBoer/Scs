@@ -72,6 +72,6 @@ namespace Scs
 		SendQueue m_sendQueue;
 	};
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_CLIENT_H____

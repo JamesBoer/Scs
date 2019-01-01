@@ -75,12 +75,12 @@ namespace Scs
 	private:
 		SOCKET m_socket;
 		AddressPtr m_address;
-		addrinfo * m_currAddress;
+		//addrinfo * m_currAddress;
 	};
 
 	SocketPtr CreateSocket(AddressPtr address);
 	SocketPtr CreateSocket(AddressPtr address, SOCKET sckt);
 
-}; // namespace Scs
+} // namespace Scs
 
 #endif // SCS_SOCKET_H____

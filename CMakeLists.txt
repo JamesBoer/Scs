@@ -22,7 +22,7 @@ function(scs_set_folders source_list folder_name)
 endfunction()
 
 # Build a test or utility executable
-function(scs_build_executable project_name source_list is_linked is_startup requires_pthreads)
+function(scs_build_executable project_name source_list is_linked is_startup)
 
 	# Create executable as project name
 	add_executable(${project_name} ${source_list})
@@ -31,19 +31,19 @@ function(scs_build_executable project_name source_list is_linked is_startup requ
 	set(CMAKE_CXX_STANDARD 17)
 	set(CMAKE_CXX_STANDARD_REQUIRED ON)
 	set(CMAKE_CXX_EXTENSIONS OFF)
-	
+
 	# Set the executable as the default startup project
 	if(is_startup)
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${project_name})
 	endif()
-	
+
 	# Add Scs library
 	if(is_linked)
 		target_link_libraries(${project_name} Scs)
 	endif()
-	
+
 	# Add pthreads
-	if(requires_pthreads AND UNIX AND NOT APPLE)
+	if(UNIX AND NOT APPLE)
 		set(THREADS_PREFER_PTHREAD_FLAG ON)
 		find_package(Threads REQUIRED)
 		target_link_libraries(${project_name} Threads::Threads)
@@ -112,7 +112,7 @@ if(NOT scs_is_subproject)
 		"Tests/UnitTests/Main.cpp"
 		"Tests/UnitTests/TestConnection.cpp"
 	)
-	scs_build_executable(ScsTest "${scstest_source_list}" TRUE FALSE FALSE)
-	scs_build_executable(UnitTests "${unittests_source_list}" TRUE TRUE FALSE)
+	scs_build_executable(ScsTest "${scstest_source_list}" TRUE FALSE)
+	scs_build_executable(UnitTests "${unittests_source_list}" TRUE TRUE)
 
 endif()
