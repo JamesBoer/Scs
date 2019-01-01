@@ -75,8 +75,8 @@ namespace Scs
 		Allocator(const Allocator<U>&) throw() { }
 
 		template<typename U>
-		Allocator & operator = (const Allocator<U> & other) { return *this; }
-		Allocator & operator = (const Allocator & other) { return *this; }
+		Allocator & operator = ([[maybe_unused]] const Allocator<U> & other) { return *this; }
+		Allocator & operator = ([[maybe_unused]] const Allocator & other) { return *this; }
 		~Allocator() {}
 
 		template <typename U>

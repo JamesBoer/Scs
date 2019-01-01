@@ -27,7 +27,6 @@ THE SOFTWARE.
 using namespace Scs;
 
 Client::Client(const ClientParams & params) :
-	m_shutdown(false),
 	m_port(params.port),
 	m_address(params.address),
 	m_status(Status::Initial),
