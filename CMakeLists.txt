@@ -7,7 +7,7 @@ project(Scs)
 
 # Set folders based on file structure
 function(scs_auto_set_folders source_list)
-	foreach(source IN LISTS source_list)
+	foreach(source IN LISTS ${source_list})
 		get_filename_component(source_path "${source}" PATH)
 		string(REPLACE "/" "\\" source_path_folder "${source_path}")
 		source_group("${source_path_folder}" FILES "${source}")
