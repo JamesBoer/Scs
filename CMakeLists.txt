@@ -5,22 +5,6 @@ cmake_minimum_required (VERSION 3.10)
 # Set project name
 project(Scs)
 
-# Set folders based on file structure
-function(scs_auto_set_folders source_list)
-	foreach(source IN LISTS ${source_list})
-		get_filename_component(source_path "${source}" PATH)
-		string(REPLACE "/" "\\" source_path_folder "${source_path}")
-		source_group("${source_path_folder}" FILES "${source}")
-	endforeach()
-endfunction()
-
-# Set folders manuallly
-function(scs_set_folders source_list folder_name)
-	foreach(source IN LISTS source_list)
-		source_group("\\${folder_name}" FILES "${source}")
-	endforeach()
-endfunction()
-
 # Build a test or utility executable
 function(scs_build_executable project_name source_list is_linked is_startup)
 
@@ -43,7 +27,7 @@ function(scs_build_executable project_name source_list is_linked is_startup)
 	endif()
 
 	# Create IDE folder structure
-	scs_set_folders("${source_list}" Source)
+	source_group("Source" FILES ${source_list})
 
 endfunction()
 
@@ -94,7 +78,7 @@ else()
 endif()
 
 # Create IDE folder structure
-scs_auto_set_folders(scs_source_list)
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${scs_source_list})
 
 # Check if Scs is included via add_subdirectory.
 get_directory_property(scs_is_subproject PARENT_DIRECTORY)
