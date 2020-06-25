@@ -42,8 +42,12 @@ Client::~Client()
 
 void Client::Connect()
 {
-	std::thread t([this]() { this->Run(); });
-	m_thread.swap(t);
+	m_status = Status::Shutdown;
+	if (m_thread.joinable())
+		m_thread.join();
+	m_status = Status::Initial;
+	m_error = false;;
+	m_thread = std::thread([this]() { this->Run(); });
 }
 
 void Client::Run()

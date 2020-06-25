@@ -68,7 +68,7 @@ namespace Scs
 		String m_address;
 		long long m_timeoutMs;
 		std::atomic<Status> m_status = Status::Initial;
-		std::atomic_bool m_error = false;;
+		std::atomic_bool m_error = false;
 		SendQueue m_sendQueue;
 	};
 
