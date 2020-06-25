@@ -47,10 +47,7 @@ TEST_CASE("Test Connection", "[Connection]")
 
 		// Handler for when server connects to client
 		bool serverConnected = false;
-		server->OnConnect([&serverConnected](int32_t clientId)
-		{
-			serverConnected = true;
-		});
+		server->OnConnect([&](int32_t) { serverConnected = true; });
 
 		// Start listening for client connections
 		server->StartListening();
@@ -63,10 +60,7 @@ TEST_CASE("Test Connection", "[Connection]")
 
 		// Handler for when client connects
 		bool clientConnected = false;
-		client->OnConnect([&clientConnected]
-		{
-			clientConnected = true;
-		});
+		client->OnConnect([&] { clientConnected = true; });
 
 		// Attempt to make a connection
 		client->Connect();
@@ -90,6 +84,7 @@ TEST_CASE("Test Connection", "[Connection]")
 		ServerParams serverParams;
 		serverParams.port = "5656";
 		serverParams.maxConnections = 100;
+		serverParams.timeoutSeconds = 10;
 		auto server = CreateServer(serverParams);
 
 		// Handler for when server connects to client
@@ -105,6 +100,7 @@ TEST_CASE("Test Connection", "[Connection]")
 		for (uint32_t i = 0; i < serverParams.maxConnections; ++i)
 		{
 			threads.emplace_back(std::thread([&] () {
+
 				// Create a client
 				ClientParams clientParams;
 				clientParams.address = "127.0.0.1";
@@ -143,6 +139,32 @@ TEST_CASE("Test Connection", "[Connection]")
 		REQUIRE(clientConnections == serverParams.maxConnections);
 		REQUIRE(serverConnections == serverParams.maxConnections);
 	}
+
+	SECTION("Test client connection timeout failure")
+	{
+		// Create a client
+		ClientParams clientParams;
+		clientParams.address = "127.0.0.1";
+		clientParams.port = "5656";
+		clientParams.timeoutSeconds = 0.1f;
+		auto client = CreateClient(clientParams);
+
+		// Attempt to make a connection
+		client->Connect();
+
+		// Wait a short time for connection
+		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(1);
+		while (!client->HasError())
+		{
+			if (std::chrono::system_clock::now() > timeout)
+				break;
+		}
+
+		// We should not be connected, and should have the error flag set
+		REQUIRE(!client->IsConnected());
+		REQUIRE(client->HasError());
+	}
+
 
 	// Shut down client-server library
 	ShutDown();

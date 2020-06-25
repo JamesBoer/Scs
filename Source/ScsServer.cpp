@@ -125,7 +125,7 @@ void Server::RunListener()
 				// Only accept a maxinum number of simultaneous connections
 				if (m_connectionList.size() >= m_maxConnections)
 				{
-					LogWriteLine("Warning: Reached max connections ({}), so new connection has been discarded.", m_maxConnections);
+					LogWriteLine("Warning: Reached max connections (%u), so new connection has been discarded.", m_maxConnections);
 					break;
 				}
 
