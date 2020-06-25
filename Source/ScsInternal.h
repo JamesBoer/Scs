@@ -103,10 +103,7 @@ typedef __int64          ssize_t;
 
 namespace Scs
 {
-	const uint32_t CLIENT_CONNECTION_TIMEOUT_SECONDS = 5;
-	const uint32_t SERVER_TIMEOUT_SECONDS = 30;
 	const uint32_t SEND_THROTTLE_MS = 10;
-	//const size_t MAX_CONNECTIONS = 128;
 	const size_t SEND_BUFFER_SIZE = 1024 * 64;
 	const size_t RECEIVE_BUFFER_SIZE = 1024 * 128;
 }

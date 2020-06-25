@@ -92,6 +92,7 @@ namespace Scs
 		std::mutex m_notifierMutex;
 		String m_port;
 		uint32_t m_maxConnections;
+		long long m_timeoutMs;
 		ClientID m_maxClientId = 0;
 		std::atomic<Status> m_status = Status::Initial;
         std::atomic_bool m_shutDown = false;

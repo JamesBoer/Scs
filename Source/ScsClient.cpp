@@ -29,8 +29,7 @@ using namespace Scs;
 Client::Client(const ClientParams & params) :
 	m_port(params.port),
 	m_address(params.address),
-	m_status(Status::Initial),
-	m_error(false)
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0f))
 {
 }
 
@@ -88,7 +87,7 @@ void Client::Run()
 		}
 		else if (m_status == Status::Connecting)
 		{
-			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(CLIENT_CONNECTION_TIMEOUT_SECONDS))
+			if (std::chrono::system_clock::now() > statusTime + std::chrono::milliseconds(m_timeoutMs))
 			{
 				if (address->Next())
 				{

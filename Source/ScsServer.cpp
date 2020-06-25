@@ -29,7 +29,8 @@ using namespace Scs;
 
 Server::Server(const ServerParams & params) :
 	m_port(params.port),
-	m_maxConnections(params.maxConnections)
+	m_maxConnections(params.maxConnections),
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0f))
 {
 }
 
@@ -167,7 +168,7 @@ void Server::RunListener()
 void Server::RunConnection(ClientConnectionPtr connection)
 {
 	// Set timeout point
-	auto timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(SERVER_TIMEOUT_SECONDS);
+	auto timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 
 	// Create a receive buffer
 	BufferPtr receiveBuffer = CreateBuffer();
@@ -205,7 +206,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(SERVER_TIMEOUT_SECONDS);
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 			}
 		}
 
@@ -235,7 +236,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 				}		
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(SERVER_TIMEOUT_SECONDS);		
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 			}
 		}
 	}
