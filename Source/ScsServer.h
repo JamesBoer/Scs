@@ -91,8 +91,9 @@ namespace Scs
 		ServerOnUpdateFn m_onUpdate;
 		std::mutex m_notifierMutex;
 		String m_port;
-		ClientID m_maxClientId;
-		std::atomic<Status> m_status;
+		uint32_t m_maxConnections;
+		ClientID m_maxClientId = 0;
+		std::atomic<Status> m_status = Status::Initial;
         std::atomic_bool m_shutDown = false;
 		std::atomic_bool m_error = false;
 	};

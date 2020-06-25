@@ -128,6 +128,7 @@ namespace Scs
 	struct ServerParams
 	{
 		std::string_view port;
+		uint32_t maxConnections = 100;
 	};
 
 	class IServer
