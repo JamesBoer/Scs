@@ -47,7 +47,7 @@ THE SOFTWARE.
 #define SCS_EWOULDBLOCK       WSAEWOULDBLOCK
 #define SCS_EINPROGRESS       WSAEINPROGRESS
 #define ScsInetNtoP           InetNtopA
-
+#define ScsIoCtrl             ioctlsocket
 
 // ssize_t is a POSIX type, not a general C++ type
 typedef __int64          ssize_t;
@@ -78,6 +78,7 @@ typedef __int64          ssize_t;
 #define SCS_EWOULDBLOCK        EWOULDBLOCK
 #define SCS_EINPROGRESS        EINPROGRESS
 #define ScsInetNtoP            inet_ntop
+#define ScsIoCtrl              ioctl
 
 #endif
 

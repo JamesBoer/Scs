@@ -217,11 +217,7 @@ void Socket::SetNonBlocking(bool nonBlocking)
 {
 	// Set socket to non-blocking
 	u_long mode = nonBlocking ? 1 : 0;
-#ifdef SCS_WINDOWS
-	ioctlsocket(m_socket, FIONBIO, &mode);
-#else
-	ioctl(m_socket, FIONBIO, &mode);
-#endif
+	ScsIoCtrl(m_socket, FIONBIO, &mode);
 }
 
 void Socket::SetNagle(bool nagle)
