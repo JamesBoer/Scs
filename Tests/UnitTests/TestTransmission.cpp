@@ -58,7 +58,8 @@ TEST_CASE("Test Transmission", "[Transmission]")
 		{
 			if (!serverReceived)
 			{
-				if (size == testString.size() + 1 && memcmp(data, testString.data(), size) == 0)
+				std::string s = static_cast<char *>(data);
+				if (s == testString)
 				{
 					serverReceived = true;
 					server.Send(clientId, testString.data(), testString.size() + 1);
@@ -87,7 +88,8 @@ TEST_CASE("Test Transmission", "[Transmission]")
 		{
 			if (!clientReceived)
 			{
-				if (size == testString.size() + 1 && memcmp(data, testString.data(), size) == 0)
+				std::string s = static_cast<char *>(data);
+				if (s == testString)
 				{
 					clientReceived = true;
 				}
