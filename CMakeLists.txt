@@ -95,6 +95,7 @@ if(NOT scs_is_subproject)
 		"Tests/UnitTests/catch.hpp"
 		"Tests/UnitTests/Main.cpp"
 		"Tests/UnitTests/TestConnection.cpp"
+		"Tests/UnitTests/TestTransmission.cpp"
 	)
 	scs_build_executable(ScsTest "${scstest_source_list}" TRUE FALSE)
 	scs_build_executable(UnitTests "${unittests_source_list}" TRUE TRUE)

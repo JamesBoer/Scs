@@ -29,7 +29,7 @@ using namespace Scs;
 Client::Client(const ClientParams & params) :
 	m_port(params.port),
 	m_address(params.address),
-	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0f))
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
 {
 }
 
@@ -112,7 +112,7 @@ void Client::Run()
                     m_status = Status::Ready;
                     LogWriteLine("Client established connection with server.");
 					if (m_onConnect)
-						m_onConnect();
+						m_onConnect(*this);
 				}
 			}
 		}
@@ -126,7 +126,7 @@ void Client::Run()
 		else if (m_status == Status::Ready)
 		{
 			if (m_onUpdate)
-				m_onUpdate();
+				m_onUpdate(*this);
 
 			// Check first to see if we can write to the socket
 			if (m_socket->IsWritable())
@@ -163,7 +163,7 @@ void Client::Run()
 					while (receivedData)
 					{
 						if (m_onReceiveData)
-							m_onReceiveData(receivedData->data(), receivedData->size());
+							m_onReceiveData(*this, receivedData->data(), receivedData->size());
 						receivedData = receiveQueue.Pop();
 					}
 				}
@@ -172,7 +172,7 @@ void Client::Run()
 	}
 
 	if (m_onDisconnect)
-		m_onDisconnect();
+		m_onDisconnect(*this);
 	m_socket = nullptr;
 }
 

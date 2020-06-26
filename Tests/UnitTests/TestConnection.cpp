@@ -47,7 +47,7 @@ TEST_CASE("Test Connection", "[Connection]")
 
 		// Handler for when server connects to client
 		bool serverConnected = false;
-		server->OnConnect([&](int32_t) { serverConnected = true; });
+		server->OnConnect([&](const IServer &, int32_t) { serverConnected = true; });
 
 		// Start listening for client connections
 		server->StartListening();
@@ -60,7 +60,7 @@ TEST_CASE("Test Connection", "[Connection]")
 
 		// Handler for when client connects
 		bool clientConnected = false;
-		client->OnConnect([&] { clientConnected = true; });
+		client->OnConnect([&](const IClient &) { clientConnected = true; });
 
 		// Attempt to make a connection
 		client->Connect();
@@ -83,13 +83,13 @@ TEST_CASE("Test Connection", "[Connection]")
 		// Create a server
 		ServerParams serverParams;
 		serverParams.port = "5656";
-		serverParams.maxConnections = 100;
+		serverParams.maxConnections = 16;
 		serverParams.timeoutSeconds = 10;
 		auto server = CreateServer(serverParams);
 
 		// Handler for when server connects to client
 		std::atomic<uint32_t> serverConnections = 0;
-		server->OnConnect([&] (int32_t) { ++serverConnections; });
+		server->OnConnect([&](const IServer &, int32_t) { ++serverConnections; });
 
 		// Start listening for client connections
 		server->StartListening();
@@ -109,7 +109,7 @@ TEST_CASE("Test Connection", "[Connection]")
 				auto client = CreateClient(clientParams);
 
 				// Handler for when client connects
-				client->OnConnect([&] { ++clientConnections; });
+				client->OnConnect([&](const IClient &) { ++clientConnections; });
 
 				// Attempt to make a connection
 				client->Connect();

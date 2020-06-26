@@ -47,27 +47,21 @@ THE SOFTWARE.
 
 namespace Scs
 {
-	template <typename T>
-	std::weak_ptr<T> ToWeak(const std::shared_ptr<T>& ptr)
-	{
-		return std::weak_ptr<T>(ptr);
-	}
-
 	// Client
 	class IClient;
 	using ClientPtr = std::shared_ptr<IClient>;
 
 	/// Prototype for client server connection notification
-	using ClientOnConnectFn = std::function<void(void)>;
+	using ClientOnConnectFn = std::function<void(IClient &)>;
 
 	/// Prototype for client disconnection notification
-	using ClientOnDisconnectFn = std::function<void(void)>;
+	using ClientOnDisconnectFn = std::function<void(IClient &)>;
 
 	/// Prototype for receive data notification
-	using ClientOnReceiveDataFn = std::function<void(void *, size_t)>;
+	using ClientOnReceiveDataFn = std::function<void(IClient &, void *, size_t)>;
 
 	/// Prototype for client update notification
-	using ClientOnUpdateFn = std::function<void(void)>;
+	using ClientOnUpdateFn = std::function<void(IClient &)>;
 
 	/// Parameters for client creation
 	/**
@@ -78,7 +72,7 @@ namespace Scs
 	{
 		std::string_view port;
 		std::string_view address;
-		float timeoutSeconds = 5.0f;
+		double timeoutSeconds = 5.0;
 	};
 
 	class IClient
@@ -107,19 +101,19 @@ namespace Scs
 
 
 	/// Prototype for server start listening notification
-	using ServerOnStartListeningFn = std::function<void (void)>;
+	using ServerOnStartListeningFn = std::function<void(IServer &)>;
 
 	/// Prototype for server client connection notification
-	using ServerOnConnectFn = std::function<void(ClientID)>;
+	using ServerOnConnectFn = std::function<void(IServer &, ClientID)>;
 
 	/// Prototype for server client disconnection notification
-	using ServerOnDisconnectFn = std::function<void(ClientID)>;
+	using ServerOnDisconnectFn = std::function<void(IServer &, ClientID)>;
 
 	/// Prototype for receive data notification
-	using ServerOnReceiveDataFn = std::function<void(ClientID, void *, size_t)>;
+	using ServerOnReceiveDataFn = std::function<void(IServer &, ClientID, void *, size_t)>;
 
 	/// Prototype for server update notification
-	using ServerOnUpdateFn = std::function<void(void)>;
+	using ServerOnUpdateFn = std::function<void(IServer &)>;
 
 	/// Parameters for server creation
 	/**
@@ -130,7 +124,7 @@ namespace Scs
 	{
 		std::string_view port;
 		uint32_t maxConnections = 100;
-		float timeoutSeconds = 15.0f;
+		double timeoutSeconds = 15.0;
 	};
 
 	class IServer

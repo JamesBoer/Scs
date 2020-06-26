@@ -30,7 +30,7 @@ using namespace Scs;
 Server::Server(const ServerParams & params) :
 	m_port(params.port),
 	m_maxConnections(params.maxConnections),
-	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0f))
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
 {
 }
 
@@ -67,7 +67,7 @@ void Server::RunListener()
 	if (m_onStartListening)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_onStartListening();
+		m_onStartListening(*this);
 	}
 
 	// Loop until we get a shutdown request
@@ -116,7 +116,7 @@ void Server::RunListener()
 			if (m_onUpdate)
 			{
 				std::lock_guard<std::mutex> lock(m_notifierMutex);
-				m_onUpdate();
+				m_onUpdate(*this);
 			}
 
 			// Check to see if we've established a connection
@@ -146,7 +146,7 @@ void Server::RunListener()
 					if (m_onConnect)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_onConnect(connection->clientID);
+						m_onConnect(*this, connection->clientID);
 					}					
 					connection->thread = std::thread([this, connection]() { this->RunConnection(connection); });
 					std::lock_guard<std::mutex> lock(m_connectionListMutex);
@@ -230,7 +230,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 					if (m_onReceiveData)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_onReceiveData(connection->clientID, receivedData->data(), receivedData->size());
+						m_onReceiveData(*this, connection->clientID, receivedData->data(), receivedData->size());
 					}
 					receivedData = connection->receiveQueue.Pop();
 				}		
@@ -247,7 +247,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 	if (m_onDisconnect)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_onDisconnect(connection->clientID);
+		m_onDisconnect(*this, connection->clientID);
 	}
 	connection->socket = nullptr;
 	LogWriteLine("Closing client %d connection thread.", connection->clientID);
