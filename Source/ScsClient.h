@@ -36,7 +36,7 @@ namespace Scs
 		virtual ~Client() override;
 
 		void Connect() override;
-		bool IsConnected() const override { return m_status == Status::Connecting ? true : false; }
+		bool IsConnected() const override { return m_status == Status::Ready ? true : false; }
 		bool HasError() const override { return m_error; }
 
 		void OnConnect(ClientOnConnectFn onConnect) override { assert(m_status == Status::Initial); m_onConnect = onConnect; }
@@ -66,8 +66,9 @@ namespace Scs
 		ClientOnUpdateFn m_onUpdate;
 		String m_port;
 		String m_address;
-		std::atomic<Status> m_status;
-		std::atomic_bool m_error;
+		long long m_timeoutMs;
+		std::atomic<Status> m_status = Status::Initial;
+		std::atomic_bool m_error = false;
 		SendQueue m_sendQueue;
 	};
 

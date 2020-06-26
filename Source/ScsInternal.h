@@ -28,8 +28,6 @@ THE SOFTWARE.
 
 #include "Scs.h"
 
-//#define SCS_TEST_MAX_SEND
-
 #ifdef SCS_WINDOWS
 
 #include <SDKDDKVer.h>
@@ -49,7 +47,7 @@ THE SOFTWARE.
 #define SCS_EWOULDBLOCK       WSAEWOULDBLOCK
 #define SCS_EINPROGRESS       WSAEINPROGRESS
 #define ScsInetNtoP           InetNtopA
-
+#define ScsIoCtrl             ioctlsocket
 
 // ssize_t is a POSIX type, not a general C++ type
 typedef __int64          ssize_t;
@@ -80,6 +78,7 @@ typedef __int64          ssize_t;
 #define SCS_EWOULDBLOCK        EWOULDBLOCK
 #define SCS_EINPROGRESS        EINPROGRESS
 #define ScsInetNtoP            inet_ntop
+#define ScsIoCtrl              ioctl
 
 #endif
 
@@ -104,14 +103,7 @@ typedef __int64          ssize_t;
 
 namespace Scs
 {
-#ifdef SCS_TEST_MAX_SEND
-	const size_t SCS_TEST_MAX_SEND_SIZE = 4096;
-#endif
-
-	const uint32_t CLIENT_CONNECTION_TIMEOUT_SECONDS = 5;
-	const uint32_t TIMEOUT_SECONDS = 30;
 	const uint32_t SEND_THROTTLE_MS = 10;
-	const size_t MAX_CONNECTIONS = 128;
 	const size_t SEND_BUFFER_SIZE = 1024 * 64;
 	const size_t RECEIVE_BUFFER_SIZE = 1024 * 128;
 }

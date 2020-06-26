@@ -29,8 +29,7 @@ using namespace Scs;
 Client::Client(const ClientParams & params) :
 	m_port(params.port),
 	m_address(params.address),
-	m_status(Status::Initial),
-	m_error(false)
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
 {
 }
 
@@ -43,8 +42,12 @@ Client::~Client()
 
 void Client::Connect()
 {
-	std::thread t([this]() { this->Run(); });
-	m_thread.swap(t);
+	m_status = Status::Shutdown;
+	if (m_thread.joinable())
+		m_thread.join();
+	m_status = Status::Initial;
+	m_error = false;;
+	m_thread = std::thread([this]() { this->Run(); });
 }
 
 void Client::Run()
@@ -82,13 +85,13 @@ void Client::Run()
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
 
-            // On some macOS, without this slight delay after a connect attempt, the socket returns immediate
+            // On macOS, without this slight delay after a connect attempt, the socket returns immediate
             // success on IsWriteable(), even if no connection is present.
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		else if (m_status == Status::Connecting)
 		{
-			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(CLIENT_CONNECTION_TIMEOUT_SECONDS))
+			if (std::chrono::system_clock::now() > statusTime + std::chrono::milliseconds(m_timeoutMs))
 			{
 				if (address->Next())
 				{
@@ -109,7 +112,7 @@ void Client::Run()
                     m_status = Status::Ready;
                     LogWriteLine("Client established connection with server.");
 					if (m_onConnect)
-						m_onConnect();
+						m_onConnect(*this);
 				}
 			}
 		}
@@ -123,7 +126,7 @@ void Client::Run()
 		else if (m_status == Status::Ready)
 		{
 			if (m_onUpdate)
-				m_onUpdate();
+				m_onUpdate(*this);
 
 			// Check first to see if we can write to the socket
 			if (m_socket->IsWritable())
@@ -160,7 +163,7 @@ void Client::Run()
 					while (receivedData)
 					{
 						if (m_onReceiveData)
-							m_onReceiveData(receivedData->data(), receivedData->size());
+							m_onReceiveData(*this, receivedData->data(), receivedData->size());
 						receivedData = receiveQueue.Pop();
 					}
 				}
@@ -169,7 +172,7 @@ void Client::Run()
 	}
 
 	if (m_onDisconnect)
-		m_onDisconnect();
+		m_onDisconnect(*this);
 	m_socket = nullptr;
 }
 

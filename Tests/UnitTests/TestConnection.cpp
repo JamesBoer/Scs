@@ -23,6 +23,8 @@ THE SOFTWARE.
 */
 
 #include <chrono>
+#include <thread>
+#include <atomic>
 #include "catch.hpp"
 #include "../../Source/Scs.h"
 
@@ -33,11 +35,11 @@ TEST_CASE("Test Connection", "[Connection]")
 {
 	// Initialize client-server library
 	InitParams params;
+	params.logFn = [] (const char *) {};
 	Initialize(params);
 
 	SECTION("Test simple client-server connection")
-	{
-		
+	{	
 		// Create a server
 		ServerParams serverParams;
 		serverParams.port = "5656";
@@ -45,10 +47,7 @@ TEST_CASE("Test Connection", "[Connection]")
 
 		// Handler for when server connects to client
 		bool serverConnected = false;
-		server->OnConnect([&serverConnected](int32_t clientId)
-		{
-			serverConnected = true;
-		});
+		server->OnConnect([&](const IServer &, int32_t) { serverConnected = true; });
 
 		// Start listening for client connections
 		server->StartListening();
@@ -61,10 +60,7 @@ TEST_CASE("Test Connection", "[Connection]")
 
 		// Handler for when client connects
 		bool clientConnected = false;
-		client->OnConnect([&clientConnected]
-		{
-			clientConnected = true;
-		});
+		client->OnConnect([&](const IClient &) { clientConnected = true; });
 
 		// Attempt to make a connection
 		client->Connect();
@@ -77,9 +73,98 @@ TEST_CASE("Test Connection", "[Connection]")
 				break;
 		}
 
+		REQUIRE(client->IsConnected());
 		REQUIRE(clientConnected);
 		REQUIRE(serverConnected);
 	}
+
+	SECTION("Test max num client-server connection")
+	{
+		// Create a server
+		ServerParams serverParams;
+		serverParams.port = "5656";
+		serverParams.maxConnections = 16;
+		serverParams.timeoutSeconds = 10;
+		auto server = CreateServer(serverParams);
+
+		// Handler for when server connects to client
+		std::atomic<uint32_t> serverConnections = 0;
+		server->OnConnect([&](const IServer &, int32_t) { ++serverConnections; });
+
+		// Start listening for client connections
+		server->StartListening();
+
+		// Start up maxConnections number of clients, and ensure they all connect to the server
+		std::vector<std::thread> threads;
+		std::atomic<uint32_t> clientConnections = 0;
+		for (uint32_t i = 0; i < serverParams.maxConnections; ++i)
+		{
+			threads.emplace_back(std::thread([&] () {
+
+				// Create a client
+				ClientParams clientParams;
+				clientParams.address = "127.0.0.1";
+				clientParams.port = "5656";
+				clientParams.timeoutSeconds = 10;
+				auto client = CreateClient(clientParams);
+
+				// Handler for when client connects
+				client->OnConnect([&](const IClient &) { ++clientConnections; });
+
+				// Attempt to make a connection
+				client->Connect();
+
+				// Wait until client has connected or signalled an error
+				while (!client->IsConnected() && !client->HasError())
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}));
+		}
+
+		// Wait for server to register max connections
+		auto timeout = std::chrono::system_clock::now() + std::chrono::milliseconds(static_cast<long long>(serverParams.timeoutSeconds * 1000.0f));
+		while (serverConnections < serverParams.maxConnections)
+		{
+			if (server->HasError())
+				return;
+			if (std::chrono::system_clock::now() > timeout)
+				break;
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+
+		// Join all threads
+		for (auto & t : threads)
+			t.join();
+
+		// Both client and server connections should equal max connections
+		REQUIRE(clientConnections == serverParams.maxConnections);
+		REQUIRE(serverConnections == serverParams.maxConnections);
+	}
+
+	SECTION("Test client connection timeout failure")
+	{
+		// Create a client
+		ClientParams clientParams;
+		clientParams.address = "127.0.0.1";
+		clientParams.port = "5656";
+		clientParams.timeoutSeconds = 0.1f;
+		auto client = CreateClient(clientParams);
+
+		// Attempt to make a connection
+		client->Connect();
+
+		// Wait a short time for connection
+		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(1);
+		while (!client->HasError())
+		{
+			if (std::chrono::system_clock::now() > timeout)
+				break;
+		}
+
+		// We should not be connected, and should have the error flag set
+		REQUIRE(!client->IsConnected());
+		REQUIRE(client->HasError());
+	}
+
 
 	// Shut down client-server library
 	ShutDown();

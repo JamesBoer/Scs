@@ -161,19 +161,15 @@ int main(int argc, char ** argv)
 		auto client = CreateClient(params);
 
 		// Handler for when client connects
-		client->OnConnect([c = ToWeak(client), &rng, &buffer]
+		client->OnConnect([&](IClient & client)
 		{
-			auto client = c.lock();
-			if (client)
-			{
-				Generate(rng, buffer);
-				client->Send(buffer.data(), buffer.size());
-				std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
-			}
+			Generate(rng, buffer);
+			client.Send(buffer.data(), buffer.size());
+			std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
 		});
 
 		// Handler for data received from server
-		client->OnReceiveData([&buffer, &nextPayload, &rng](void * data, size_t bytes)
+		client->OnReceiveData([&](IClient & client, const void * data, size_t bytes)
 		{
 			// Check to see if the data received is equal to what was sent out
 			auto cmpVal = std::memcmp(data, buffer.data(), std::min(bytes, buffer.size()));
@@ -187,7 +183,7 @@ int main(int argc, char ** argv)
 		});
 
 		// Handler for per-cycle update
-		client->OnUpdate([c = ToWeak(client), &nextPayload, &rng, &buffer]()
+		client->OnUpdate([&](IClient & client)
 		{
 			// If we don't have buffer data, fill it and send it to the server.  Otherwise, we're waiting
 			// for a response from the server.
@@ -198,12 +194,8 @@ int main(int argc, char ** argv)
 				if (now >= nextPayload)
 				{
 					Generate(rng, buffer);
-					auto client = c.lock();
-					if (client)
-					{
-						client->Send(buffer.data(), buffer.size());
-						std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";
-					}
+					client.Send(buffer.data(), buffer.size());
+					std::cout << "Sending random buffer of " << buffer.size() << " bytes to server.\n";			
 				}
 			}
 		});
@@ -212,7 +204,7 @@ int main(int argc, char ** argv)
 		client->Connect();
 
 		// Wait until ESC is pressed
-		while (GetChar() != 27) {}
+		while (GetChar() != 27) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
 	}
 	// Otherwise, start up a server
 	else
@@ -225,19 +217,17 @@ int main(int argc, char ** argv)
 		auto server = CreateServer(params);
 
 		// Handler for incoming data
-		server->OnReceiveData([s = ToWeak(server)](ClientID clientId, void * data, size_t bytes)
+		server->OnReceiveData([](IServer & server, ClientID clientId, const void * data, size_t bytes)
 		{
 			std::cout << "Received message of " << bytes << " bytes from client " << clientId << ".\n";
-			auto server = s.lock();
-			if (server)
-				server->Send(clientId, data, bytes);
+			server.Send(clientId, data, bytes);
 		});
 
 		// Start listening for client connections
 		server->StartListening();
 
 		// Wait until ESC is pressed
-		while (GetChar() != 27) {}
+		while (GetChar() != 27) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
 	}
 
 	// Shut down client-server library

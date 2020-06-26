@@ -29,9 +29,8 @@ using namespace Scs;
 
 Server::Server(const ServerParams & params) :
 	m_port(params.port),
-	m_maxClientId(0),
-	m_status(Status::Initial),
-	m_error(false)
+	m_maxConnections(params.maxConnections),
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
 {
 }
 
@@ -68,7 +67,7 @@ void Server::RunListener()
 	if (m_onStartListening)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_onStartListening();
+		m_onStartListening(*this);
 	}
 
 	// Loop until we get a shutdown request
@@ -117,15 +116,18 @@ void Server::RunListener()
 			if (m_onUpdate)
 			{
 				std::lock_guard<std::mutex> lock(m_notifierMutex);
-				m_onUpdate();
+				m_onUpdate(*this);
 			}
 
 			// Check to see if we've established a connection
 			if (m_listenerSocket->IsReadable())
 			{
 				// Only accept a maxinum number of simultaneous connections
-				if (m_connectionList.size() > MAX_CONNECTIONS)
+				if (m_connectionList.size() >= m_maxConnections)
+				{
+					LogWriteLine("Warning: Reached max connections (%u), so new connection has been discarded.", m_maxConnections);
 					break;
+				}
 
 				LogWriteLine("Server received connection request from client.");
 				SocketPtr connectionSocket = m_listenerSocket->Accept();
@@ -144,7 +146,7 @@ void Server::RunListener()
 					if (m_onConnect)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_onConnect(connection->clientID);
+						m_onConnect(*this, connection->clientID);
 					}					
 					connection->thread = std::thread([this, connection]() { this->RunConnection(connection); });
 					std::lock_guard<std::mutex> lock(m_connectionListMutex);
@@ -166,7 +168,7 @@ void Server::RunListener()
 void Server::RunConnection(ClientConnectionPtr connection)
 {
 	// Set timeout point
-	auto timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
+	auto timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 
 	// Create a receive buffer
 	BufferPtr receiveBuffer = CreateBuffer();
@@ -204,7 +206,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 			}
 		}
 
@@ -228,13 +230,13 @@ void Server::RunConnection(ClientConnectionPtr connection)
 					if (m_onReceiveData)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_onReceiveData(connection->clientID, receivedData->data(), receivedData->size());
+						m_onReceiveData(*this, connection->clientID, receivedData->data(), receivedData->size());
 					}
 					receivedData = connection->receiveQueue.Pop();
 				}		
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);		
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 			}
 		}
 	}
@@ -245,7 +247,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 	if (m_onDisconnect)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_onDisconnect(connection->clientID);
+		m_onDisconnect(*this, connection->clientID);
 	}
 	connection->socket = nullptr;
 	LogWriteLine("Closing client %d connection thread.", connection->clientID);
@@ -256,12 +258,10 @@ void Server::Send(ClientID clientId, const void * data, size_t bytes)
 	std::lock_guard<std::mutex> lock(m_connectionListMutex);
 	if (m_connectionList.empty())
 		return;
-	for (auto itr = m_connectionList.begin(); itr != m_connectionList.end(); ++itr)
+	for (auto connection : m_connectionList)
 	{
-		if ((*itr)->clientID == clientId)
-		{
-			(*itr)->sendQueue.Push(data, bytes);
-		}
+		if (connection->clientID == clientId)
+			connection->sendQueue.Push(data, bytes);
 	}
 }
 
@@ -272,10 +272,8 @@ void Server::SendAll(const void * data, size_t bytes)
 		return;
 	BufferPtr buffer = CreateBuffer();
 	buffer->insert(buffer->end(), static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + bytes);
-	for (auto itr = m_connectionList.begin(); itr != m_connectionList.end(); ++itr)
-	{
-		(*itr)->sendQueue.Push(data, bytes);
-	}
+	for (auto connection : m_connectionList)
+		connection->sendQueue.Push(data, bytes);
 }
 
 void Server::StartListening()
