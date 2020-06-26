@@ -169,7 +169,7 @@ int main(int argc, char ** argv)
 		});
 
 		// Handler for data received from server
-		client->OnReceiveData([&](IClient & client, void * data, size_t bytes)
+		client->OnReceiveData([&](IClient & client, const void * data, size_t bytes)
 		{
 			// Check to see if the data received is equal to what was sent out
 			auto cmpVal = std::memcmp(data, buffer.data(), std::min(bytes, buffer.size()));
@@ -217,7 +217,7 @@ int main(int argc, char ** argv)
 		auto server = CreateServer(params);
 
 		// Handler for incoming data
-		server->OnReceiveData([](IServer & server, ClientID clientId, void * data, size_t bytes)
+		server->OnReceiveData([](IServer & server, ClientID clientId, const void * data, size_t bytes)
 		{
 			std::cout << "Received message of " << bytes << " bytes from client " << clientId << ".\n";
 			server.Send(clientId, data, bytes);

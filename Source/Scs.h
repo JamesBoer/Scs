@@ -58,7 +58,7 @@ namespace Scs
 	using ClientOnDisconnectFn = std::function<void(IClient &)>;
 
 	/// Prototype for receive data notification
-	using ClientOnReceiveDataFn = std::function<void(IClient &, void *, size_t)>;
+	using ClientOnReceiveDataFn = std::function<void(IClient &, const void *, size_t)>;
 
 	/// Prototype for client update notification
 	using ClientOnUpdateFn = std::function<void(IClient &)>;
@@ -110,7 +110,7 @@ namespace Scs
 	using ServerOnDisconnectFn = std::function<void(IServer &, ClientID)>;
 
 	/// Prototype for receive data notification
-	using ServerOnReceiveDataFn = std::function<void(IServer &, ClientID, void *, size_t)>;
+	using ServerOnReceiveDataFn = std::function<void(IServer &, ClientID, const void *, size_t)>;
 
 	/// Prototype for server update notification
 	using ServerOnUpdateFn = std::function<void(IServer &)>;

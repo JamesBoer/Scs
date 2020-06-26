@@ -54,11 +54,11 @@ TEST_CASE("Test Transmission", "[Transmission]")
 			serverConnected = true;
 		});
 		bool serverReceived = false;
-		server->OnReceiveData([&] (IServer & server, ClientID clientId, void * data, size_t size)
+		server->OnReceiveData([&] (IServer & server, ClientID clientId, const void * data, size_t size)
 		{
 			if (!serverReceived)
 			{
-				std::string s = static_cast<char *>(data);
+				std::string s = static_cast<const char *>(data);
 				if (s == testString)
 				{
 					serverReceived = true;
@@ -84,11 +84,11 @@ TEST_CASE("Test Transmission", "[Transmission]")
 			client.Send(testString.data(), testString.size() + 1);
 		});
 		bool clientReceived = false;
-		client->OnReceiveData([&] (IClient & client, void * data, size_t size)
+		client->OnReceiveData([&] (IClient & client, const void * data, size_t size)
 		{
 			if (!clientReceived)
 			{
-				std::string s = static_cast<char *>(data);
+				std::string s = static_cast<const char *>(data);
 				if (s == testString)
 				{
 					clientReceived = true;
