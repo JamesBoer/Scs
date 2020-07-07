@@ -107,27 +107,21 @@ THE SOFTWARE.
 
 namespace Scs
 {
-	template <typename T>
-	std::weak_ptr<T> ToWeak(const std::shared_ptr<T>& ptr)
-	{
-		return std::weak_ptr<T>(ptr);
-	}
-
 	// Client
 	class IClient;
 	using ClientPtr = std::shared_ptr<IClient>;
 
 	/// Prototype for client server connection notification
-	using ClientOnConnectFn = std::function<void(void)>;
+	using ClientOnConnectFn = std::function<void(IClient &)>;
 
 	/// Prototype for client disconnection notification
-	using ClientOnDisconnectFn = std::function<void(void)>;
+	using ClientOnDisconnectFn = std::function<void(IClient &)>;
 
 	/// Prototype for receive data notification
-	using ClientOnReceiveDataFn = std::function<void(void *, size_t)>;
+	using ClientOnReceiveDataFn = std::function<void(IClient &, const void *, size_t)>;
 
 	/// Prototype for client update notification
-	using ClientOnUpdateFn = std::function<void(void)>;
+	using ClientOnUpdateFn = std::function<void(IClient &)>;
 
 	/// Parameters for client creation
 	/**
@@ -138,6 +132,7 @@ namespace Scs
 	{
 		std::string_view port;
 		std::string_view address;
+		double timeoutSeconds = 5.0;
 	};
 
 	class IClient
@@ -166,19 +161,19 @@ namespace Scs
 
 
 	/// Prototype for server start listening notification
-	using ServerOnStartListeningFn = std::function<void (void)>;
+	using ServerOnStartListeningFn = std::function<void(IServer &)>;
 
 	/// Prototype for server client connection notification
-	using ServerOnConnectFn = std::function<void(ClientID)>;
+	using ServerOnConnectFn = std::function<void(IServer &, ClientID)>;
 
 	/// Prototype for server client disconnection notification
-	using ServerOnDisconnectFn = std::function<void(ClientID)>;
+	using ServerOnDisconnectFn = std::function<void(IServer &, ClientID)>;
 
 	/// Prototype for receive data notification
-	using ServerOnReceiveDataFn = std::function<void(ClientID, void *, size_t)>;
+	using ServerOnReceiveDataFn = std::function<void(IServer &, ClientID, const void *, size_t)>;
 
 	/// Prototype for server update notification
-	using ServerOnUpdateFn = std::function<void(void)>;
+	using ServerOnUpdateFn = std::function<void(IServer &)>;
 
 	/// Parameters for server creation
 	/**
@@ -188,6 +183,8 @@ namespace Scs
 	struct ServerParams
 	{
 		std::string_view port;
+		uint32_t maxConnections = 100;
+		double timeoutSeconds = 15.0;
 	};
 
 	class IServer
@@ -261,8 +258,6 @@ namespace Scs
 
 
 
-//#define SCS_TEST_MAX_SEND
-
 #ifdef SCS_WINDOWS
 
 #include <SDKDDKVer.h>
@@ -282,7 +277,7 @@ namespace Scs
 #define SCS_EWOULDBLOCK       WSAEWOULDBLOCK
 #define SCS_EINPROGRESS       WSAEINPROGRESS
 #define ScsInetNtoP           InetNtopA
-
+#define ScsIoCtrl             ioctlsocket
 
 // ssize_t is a POSIX type, not a general C++ type
 typedef __int64          ssize_t;
@@ -313,6 +308,7 @@ typedef __int64          ssize_t;
 #define SCS_EWOULDBLOCK        EWOULDBLOCK
 #define SCS_EINPROGRESS        EINPROGRESS
 #define ScsInetNtoP            inet_ntop
+#define ScsIoCtrl              ioctl
 
 #endif
 
@@ -765,7 +761,7 @@ namespace Scs
 		virtual ~Client() override;
 
 		void Connect() override;
-		bool IsConnected() const override { return m_status == Status::Connecting ? true : false; }
+		bool IsConnected() const override { return m_status == Status::Ready ? true : false; }
 		bool HasError() const override { return m_error; }
 
 		void OnConnect(ClientOnConnectFn onConnect) override { assert(m_status == Status::Initial); m_onConnect = onConnect; }
@@ -795,8 +791,9 @@ namespace Scs
 		ClientOnUpdateFn m_onUpdate;
 		String m_port;
 		String m_address;
-		std::atomic<Status> m_status;
-		std::atomic_bool m_error;
+		long long m_timeoutMs;
+		std::atomic<Status> m_status = Status::Initial;
+		std::atomic_bool m_error = false;
 		SendQueue m_sendQueue;
 	};
 
@@ -904,8 +901,10 @@ namespace Scs
 		ServerOnUpdateFn m_onUpdate;
 		std::mutex m_notifierMutex;
 		String m_port;
-		ClientID m_maxClientId;
-		std::atomic<Status> m_status;
+		uint32_t m_maxConnections;
+		long long m_timeoutMs;
+		ClientID m_maxClientId = 0;
+		std::atomic<Status> m_status = Status::Initial;
         std::atomic_bool m_shutDown = false;
 		std::atomic_bool m_error = false;
 	};
@@ -922,14 +921,7 @@ namespace Scs
 
 namespace Scs
 {
-#ifdef SCS_TEST_MAX_SEND
-	const size_t SCS_TEST_MAX_SEND_SIZE = 4096;
-#endif
-
-	const uint32_t CLIENT_CONNECTION_TIMEOUT_SECONDS = 5;
-	const uint32_t TIMEOUT_SECONDS = 30;
 	const uint32_t SEND_THROTTLE_MS = 10;
-	const size_t MAX_CONNECTIONS = 128;
 	const size_t SEND_BUFFER_SIZE = 1024 * 64;
 	const size_t RECEIVE_BUFFER_SIZE = 1024 * 128;
 }
@@ -1152,8 +1144,7 @@ using namespace Scs;
 Client::Client(const ClientParams & params) :
 	m_port(params.port),
 	m_address(params.address),
-	m_status(Status::Initial),
-	m_error(false)
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
 {
 }
 
@@ -1166,8 +1157,12 @@ Client::~Client()
 
 void Client::Connect()
 {
-	std::thread t([this]() { this->Run(); });
-	m_thread.swap(t);
+	m_status = Status::Shutdown;
+	if (m_thread.joinable())
+		m_thread.join();
+	m_status = Status::Initial;
+	m_error = false;;
+	m_thread = std::thread([this]() { this->Run(); });
 }
 
 void Client::Run()
@@ -1205,13 +1200,13 @@ void Client::Run()
 			m_status = Status::Connecting;
 			statusTime = std::chrono::system_clock::now();
 
-            // On some macOS, without this slight delay after a connect attempt, the socket returns immediate
+            // On macOS, without this slight delay after a connect attempt, the socket returns immediate
             // success on IsWriteable(), even if no connection is present.
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		else if (m_status == Status::Connecting)
 		{
-			if (std::chrono::system_clock::now() > statusTime + std::chrono::seconds(CLIENT_CONNECTION_TIMEOUT_SECONDS))
+			if (std::chrono::system_clock::now() > statusTime + std::chrono::milliseconds(m_timeoutMs))
 			{
 				if (address->Next())
 				{
@@ -1232,7 +1227,7 @@ void Client::Run()
                     m_status = Status::Ready;
                     LogWriteLine("Client established connection with server.");
 					if (m_onConnect)
-						m_onConnect();
+						m_onConnect(*this);
 				}
 			}
 		}
@@ -1246,7 +1241,7 @@ void Client::Run()
 		else if (m_status == Status::Ready)
 		{
 			if (m_onUpdate)
-				m_onUpdate();
+				m_onUpdate(*this);
 
 			// Check first to see if we can write to the socket
 			if (m_socket->IsWritable())
@@ -1283,7 +1278,7 @@ void Client::Run()
 					while (receivedData)
 					{
 						if (m_onReceiveData)
-							m_onReceiveData(receivedData->data(), receivedData->size());
+							m_onReceiveData(*this, receivedData->data(), receivedData->size());
 						receivedData = receiveQueue.Pop();
 					}
 				}
@@ -1292,7 +1287,7 @@ void Client::Run()
 	}
 
 	if (m_onDisconnect)
-		m_onDisconnect();
+		m_onDisconnect(*this);
 	m_socket = nullptr;
 }
 
@@ -1655,9 +1650,8 @@ using namespace Scs;
 
 Server::Server(const ServerParams & params) :
 	m_port(params.port),
-	m_maxClientId(0),
-	m_status(Status::Initial),
-	m_error(false)
+	m_maxConnections(params.maxConnections),
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
 {
 }
 
@@ -1694,7 +1688,7 @@ void Server::RunListener()
 	if (m_onStartListening)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_onStartListening();
+		m_onStartListening(*this);
 	}
 
 	// Loop until we get a shutdown request
@@ -1743,15 +1737,18 @@ void Server::RunListener()
 			if (m_onUpdate)
 			{
 				std::lock_guard<std::mutex> lock(m_notifierMutex);
-				m_onUpdate();
+				m_onUpdate(*this);
 			}
 
 			// Check to see if we've established a connection
 			if (m_listenerSocket->IsReadable())
 			{
 				// Only accept a maxinum number of simultaneous connections
-				if (m_connectionList.size() > MAX_CONNECTIONS)
+				if (m_connectionList.size() >= m_maxConnections)
+				{
+					LogWriteLine("Warning: Reached max connections (%u), so new connection has been discarded.", m_maxConnections);
 					break;
+				}
 
 				LogWriteLine("Server received connection request from client.");
 				SocketPtr connectionSocket = m_listenerSocket->Accept();
@@ -1770,7 +1767,7 @@ void Server::RunListener()
 					if (m_onConnect)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_onConnect(connection->clientID);
+						m_onConnect(*this, connection->clientID);
 					}					
 					connection->thread = std::thread([this, connection]() { this->RunConnection(connection); });
 					std::lock_guard<std::mutex> lock(m_connectionListMutex);
@@ -1792,7 +1789,7 @@ void Server::RunListener()
 void Server::RunConnection(ClientConnectionPtr connection)
 {
 	// Set timeout point
-	auto timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
+	auto timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 
 	// Create a receive buffer
 	BufferPtr receiveBuffer = CreateBuffer();
@@ -1830,7 +1827,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 				std::this_thread::sleep_for(std::chrono::milliseconds(SEND_THROTTLE_MS));
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 			}
 		}
 
@@ -1854,13 +1851,13 @@ void Server::RunConnection(ClientConnectionPtr connection)
 					if (m_onReceiveData)
 					{
 						std::lock_guard<std::mutex> lock(m_notifierMutex);
-						m_onReceiveData(connection->clientID, receivedData->data(), receivedData->size());
+						m_onReceiveData(*this, connection->clientID, receivedData->data(), receivedData->size());
 					}
 					receivedData = connection->receiveQueue.Pop();
 				}		
 
 				// Reset timeout
-				timeoutTime = std::chrono::system_clock::now() + std::chrono::seconds(TIMEOUT_SECONDS);		
+				timeoutTime = std::chrono::system_clock::now() + std::chrono::milliseconds(m_timeoutMs);
 			}
 		}
 	}
@@ -1871,7 +1868,7 @@ void Server::RunConnection(ClientConnectionPtr connection)
 	if (m_onDisconnect)
 	{
 		std::lock_guard<std::mutex> lock(m_notifierMutex);
-		m_onDisconnect(connection->clientID);
+		m_onDisconnect(*this, connection->clientID);
 	}
 	connection->socket = nullptr;
 	LogWriteLine("Closing client %d connection thread.", connection->clientID);
@@ -1882,12 +1879,10 @@ void Server::Send(ClientID clientId, const void * data, size_t bytes)
 	std::lock_guard<std::mutex> lock(m_connectionListMutex);
 	if (m_connectionList.empty())
 		return;
-	for (auto itr = m_connectionList.begin(); itr != m_connectionList.end(); ++itr)
+	for (auto connection : m_connectionList)
 	{
-		if ((*itr)->clientID == clientId)
-		{
-			(*itr)->sendQueue.Push(data, bytes);
-		}
+		if (connection->clientID == clientId)
+			connection->sendQueue.Push(data, bytes);
 	}
 }
 
@@ -1898,10 +1893,8 @@ void Server::SendAll(const void * data, size_t bytes)
 		return;
 	BufferPtr buffer = CreateBuffer();
 	buffer->insert(buffer->end(), static_cast<const uint8_t *>(data), static_cast<const uint8_t *>(data) + bytes);
-	for (auto itr = m_connectionList.begin(); itr != m_connectionList.end(); ++itr)
-	{
-		(*itr)->sendQueue.Push(data, bytes);
-	}
+	for (auto connection : m_connectionList)
+		connection->sendQueue.Push(data, bytes);
 }
 
 void Server::StartListening()
@@ -2126,9 +2119,6 @@ size_t Socket::Receive(void * data, size_t bytes, uint32_t flags)
 
 bool Socket::Send(void * data, size_t bytes, uint32_t flags, size_t * bytesSent)
 {
-#ifdef SCS_TEST_MAX_SEND
-	bytes = std::max(bytes, SCS_TEST_MAX_SEND_SIZE);
-#endif
 	assert(bytesSent);
 	ssize_t sent = send(m_socket, static_cast<const char*>(data), static_cast<int>(bytes), flags);
 	int lastError = SocketLastError;
@@ -2145,11 +2135,7 @@ void Socket::SetNonBlocking(bool nonBlocking)
 {
 	// Set socket to non-blocking
 	u_long mode = nonBlocking ? 1 : 0;
-#ifdef SCS_WINDOWS
-	ioctlsocket(m_socket, FIONBIO, &mode);
-#else
-	ioctl(m_socket, FIONBIO, &mode);
-#endif
+	ScsIoCtrl(m_socket, FIONBIO, &mode);
 }
 
 void Socket::SetNagle(bool nagle)
