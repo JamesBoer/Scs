@@ -100,7 +100,7 @@ TEST_CASE("Test Transmission", "[Transmission]")
 		client->Connect();
 
 		// Wait a short time for connection and successful back and forth transmission
-		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(1);
+		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
 		while (!clientReceived || !serverReceived)
 		{
 			if (std::chrono::system_clock::now() > timeout)
