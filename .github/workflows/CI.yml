@@ -35,8 +35,8 @@ jobs:
       run: ./BuildMSVC.cmd
 
     # Run unit tests
-    - name: Run unit tests
-      run: ./../Build/Release/UnitTests.exe
+    # - name: Run unit tests
+    #   run: ./../Build/Release/UnitTests.exe
 
   build_macos:
     # The type of runner that the job will run on
@@ -56,8 +56,8 @@ jobs:
       run: ./BuildMakefiles.sh
 
     # Run unit tests
-    - name: Run unit tests
-      run: ./../Build/Release/UnitTests
+    # - name: Run unit tests
+    #   run: ./../Build/Release/UnitTests
 
   build_linux:
     # The type of runner that the job will run on
@@ -77,5 +77,5 @@ jobs:
       run: ./BuildMakefiles.sh
 
     # Run unit tests
-    - name: Run unit tests
-      run: ./../Build/Release/UnitTests
+    # - name: Run unit tests
+    #   run: ./../Build/Release/UnitTests
