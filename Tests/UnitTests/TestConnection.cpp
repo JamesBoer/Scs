@@ -39,7 +39,7 @@ TEST_CASE("Test Connection", "[Connection]")
 	Initialize(params);
 
 	SECTION("Test simple client-server connection")
-	{	
+	{
 		// Create a server
 		ServerParams serverParams;
 		serverParams.port = "5656";
@@ -66,7 +66,7 @@ TEST_CASE("Test Connection", "[Connection]")
 		client->Connect();
 
 		// Wait a short time for connection
-		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(1);
+		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
 		while (!clientConnected || !serverConnected)
 		{
 			if (std::chrono::system_clock::now() > timeout)
@@ -83,8 +83,8 @@ TEST_CASE("Test Connection", "[Connection]")
 		// Create a server
 		ServerParams serverParams;
 		serverParams.port = "5656";
-		serverParams.maxConnections = 16;
-		serverParams.timeoutSeconds = 10;
+		serverParams.maxConnections = 5;
+		serverParams.timeoutSeconds = 20;
 		auto server = CreateServer(serverParams);
 
 		// Handler for when server connects to client
