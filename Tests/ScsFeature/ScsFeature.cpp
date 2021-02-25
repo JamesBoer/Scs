@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 #include <iostream>
 #include <chrono>
+#include <atomic>
 #include <thread>
 #include <cstring>
 #include <assert.h>
