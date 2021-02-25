@@ -87,6 +87,10 @@ get_directory_property(scs_is_subproject PARENT_DIRECTORY)
 if(NOT scs_is_subproject)
 
 	set(
+		scsfeature_source_list
+		"Tests/ScsFeature/ScsFeature.cpp"
+	)
+	set(
 		scstest_source_list
 		"Tests/ScsTest/ScsTest.cpp"
 	)
@@ -97,6 +101,7 @@ if(NOT scs_is_subproject)
 		"Tests/UnitTests/TestConnection.cpp"
 		"Tests/UnitTests/TestTransmission.cpp"
 	)
+	scs_build_executable(ScsFeature "${scsfeature_source_list}" TRUE FALSE)
 	scs_build_executable(ScsTest "${scstest_source_list}" TRUE FALSE)
 	scs_build_executable(UnitTests "${unittests_source_list}" TRUE TRUE)
 
