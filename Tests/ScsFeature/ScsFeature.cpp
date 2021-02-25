@@ -67,6 +67,7 @@ int main(int argc, char ** argv)
 	std::atomic<uint32_t> clientConnections = 0;
 	for (uint32_t i = 0; i < serverParams.maxConnections; ++i)
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		threads.emplace_back(std::thread([&] () {
 
 			// Create a client

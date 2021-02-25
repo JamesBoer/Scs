@@ -83,7 +83,7 @@ TEST_CASE("Test Connection", "[Connection]")
 		// Create a server
 		ServerParams serverParams;
 		serverParams.port = "5656";
-		serverParams.maxConnections = 5;
+		serverParams.maxConnections = 100;
 		serverParams.timeoutSeconds = 20;
 		auto server = CreateServer(serverParams);
 
@@ -99,6 +99,7 @@ TEST_CASE("Test Connection", "[Connection]")
 		std::atomic<uint32_t> clientConnections = 0;
 		for (uint32_t i = 0; i < serverParams.maxConnections; ++i)
 		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			threads.emplace_back(std::thread([&] () {
 
 				// Create a client

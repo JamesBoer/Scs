@@ -73,9 +73,6 @@ void Server::RunListener()
 	// Loop until we get a shutdown request
 	while (!m_shutDown)
 	{
-		// We don't want to burn too much CPU while idling.
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
 		if (m_status == Status::Initial)
 		{
 			// Create address structure, create socket, and set
@@ -152,6 +149,11 @@ void Server::RunListener()
 					std::lock_guard<std::mutex> lock(m_connectionListMutex);
 					m_connectionList.push_back(connection);		
 				}
+			}
+			else
+			{
+				// We don't want to burn too much CPU while idling.
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
 	}
@@ -282,7 +284,7 @@ void Server::StartListening()
 
 	// Lock until the async initialize function is finished
 	std::unique_lock<std::mutex> lock(m_connectionListMutex);
-	m_stateCondition.wait_for(lock, std::chrono::milliseconds(1), [this]() { return m_status != Status::Listening;  });
+	m_stateCondition.wait_for(lock, std::chrono::microseconds(1), [this]() { return m_status != Status::Listening;  });
 }
 
 ServerPtr Scs::CreateServer(const ServerParams & params)
