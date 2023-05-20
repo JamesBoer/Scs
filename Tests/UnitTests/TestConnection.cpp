@@ -166,6 +166,56 @@ TEST_CASE("Test Connection", "[Connection]")
 		REQUIRE(client->HasError());
 	}
 
+	SECTION("Test dual client to server connection")
+	{
+		// Create a server
+		ServerParams serverParams;
+		serverParams.port = "5656";
+		auto server = CreateServer(serverParams);
+
+		// Handler for when server connects to client
+		bool serverConnected = false;
+		server->OnConnect([&](const IServer&, int32_t) { serverConnected = true; });
+
+		// Start listening for client connections
+		server->StartListening();
+
+		// Create client 1
+		ClientParams clientParams;
+		clientParams.address = "127.0.0.1";
+		clientParams.port = "5656";
+		auto client1 = CreateClient(clientParams);
+
+		// Handler for when client 1 connects
+		bool client1Connected = false;
+		client1->OnConnect([&](const IClient&) { client1Connected = true; });
+
+		// Create client 2
+		auto client2 = CreateClient(clientParams);
+
+		// Handler for when client 1 connects
+		bool client2Connected = false;
+		client2->OnConnect([&](const IClient&) { client2Connected = true; });
+
+		// Attempt to make connections
+		client1->Connect();
+		client2->Connect();
+
+		// Wait a short time for connection
+		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
+		while (!client1Connected || !client2Connected || !serverConnected)
+		{
+			if (std::chrono::system_clock::now() > timeout)
+				break;
+		}
+
+		REQUIRE(client1->IsConnected());
+		REQUIRE(client1Connected);
+		REQUIRE(client2->IsConnected());
+		REQUIRE(client2Connected);
+		REQUIRE(serverConnected);
+ 	}
+
 
 	// Shut down client-server library
 	ShutDown();
