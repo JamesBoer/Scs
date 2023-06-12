@@ -112,6 +112,73 @@ TEST_CASE("Test Transmission", "[Transmission]")
 		REQUIRE(serverReceived);
 	}
 
+	SECTION("Test client and server update rate")
+	{
+		// Number of update callbacks to count to
+		const int numUpdates = 20;
+
+		// Create a server
+		ServerParams serverParams;
+		serverParams.port = "5656";
+		serverParams.updateMs = 10;
+		auto server = CreateServer(serverParams);
+
+		// Handler for when server connects to client
+		bool serverConnected = false;
+		server->OnConnect([&](IServer & server, int32_t clientId)
+		{
+			serverConnected = true;
+		});
+
+		// Handler for server updates
+		int serverUpdates = 0;
+		server->OnUpdate([&](IServer& server)
+		{
+			if (serverUpdates < numUpdates)
+				++serverUpdates;
+		});
+
+		// Start listening for client connections
+		server->StartListening();
+
+		// Create a client
+		ClientParams clientParams;
+		clientParams.address = "127.0.0.1";
+		clientParams.port = "5656";
+		clientParams.updateMs = 10;
+		auto client = CreateClient(clientParams);
+
+		// Handler for when client connects
+		bool clientConnected = false;
+		client->OnConnect([&](IClient & client)
+		{
+			clientConnected = true;
+		});
+
+		// Handler for client updates
+		int clientUpdates = 0;
+		client->OnUpdate([&](IClient& client)
+		{
+			if (clientUpdates < numUpdates)
+				++clientUpdates;
+		});
+
+		// Attempt to make a connection
+		client->Connect();
+
+		// Wait a short time for connection and successful back and forth transmission
+		auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
+		while (clientUpdates != numUpdates || serverUpdates != numUpdates)
+		{
+			if (std::chrono::system_clock::now() > timeout)
+				break;
+		}
+
+   		REQUIRE(client->IsConnected());
+		REQUIRE(clientUpdates == numUpdates);
+		REQUIRE(serverUpdates == numUpdates);
+	}
+
 	SECTION("Test dual client-server transmission")
 	{
 		std::string testString1 = "Test string 1.";

@@ -93,6 +93,8 @@ namespace Scs
 		String m_port;
 		uint32_t m_maxConnections;
 		long long m_timeoutMs;
+		uint32_t m_updateMs;
+		std::chrono::time_point<std::chrono::steady_clock> m_lastUpdate;
 		ClientID m_maxClientId = 0;
 		std::atomic<Status> m_status = Status::Initial;
         std::atomic_bool m_shutDown = false;

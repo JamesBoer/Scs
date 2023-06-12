@@ -73,6 +73,7 @@ namespace Scs
 		std::string_view port;
 		std::string_view address;
 		double timeoutSeconds = 5.0;
+		uint32_t updateMs = 1;
 	};
 
 	class IClient
@@ -125,6 +126,7 @@ namespace Scs
 		std::string_view port;
 		uint32_t maxConnections = 100;
 		double timeoutSeconds = 15.0;
+		uint32_t updateMs = 1;
 	};
 
 	class IServer

@@ -30,7 +30,8 @@ using namespace Scs;
 Server::Server(const ServerParams & params) :
 	m_port(params.port),
 	m_maxConnections(params.maxConnections),
-	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0)),
+	m_updateMs(params.updateMs)
 {
 }
 
@@ -62,6 +63,9 @@ void Server::RunListener()
 	LogWriteLine("Server::RunListener()");
 			
 	m_stateCondition.notify_one();
+
+	// Get current time
+	m_lastUpdate = std::chrono::steady_clock::now();
 	
 	// Notify that we've started listening
 	if (m_onStartListening)
@@ -112,8 +116,13 @@ void Server::RunListener()
 			// Update callback function called while listening
 			if (m_onUpdate)
 			{
-				std::lock_guard<std::mutex> lock(m_notifierMutex);
-				m_onUpdate(*this);
+				auto nowTime = std::chrono::steady_clock::now();
+				if ((nowTime - std::chrono::milliseconds(m_updateMs)) > m_lastUpdate)
+				{
+					std::lock_guard<std::mutex> lock(m_notifierMutex);
+					m_onUpdate(*this);
+					m_lastUpdate = nowTime;
+				}
 			}
 
 			// Check to see if we've established a connection
