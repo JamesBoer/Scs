@@ -92,6 +92,7 @@ typedef __int64          ssize_t;
 #include <cassert>
 #include <cstring>
 #include <cstdarg>
+#include <chrono>
 
 #include "ScsCommon.h"
 #include "ScsAddress.h"

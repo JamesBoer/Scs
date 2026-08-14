@@ -29,7 +29,8 @@ using namespace Scs;
 Client::Client(const ClientParams & params) :
 	m_port(params.port),
 	m_address(params.address),
-	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0))
+	m_timeoutMs(static_cast<long long>(params.timeoutSeconds * 1000.0)),
+	m_updateMs(params.updateMs)
 {
 }
 
@@ -63,7 +64,7 @@ void Client::Run()
 	ReceiveQueue receiveQueue;
 
 	// Mark initial time
-	auto statusTime = std::chrono::system_clock::now();
+	auto statusTime = std::chrono::steady_clock::now();
 
 	// Loop until we get a shutdown request
 	while (m_status != Status::Shutdown)
@@ -83,7 +84,11 @@ void Client::Run()
 				break;
 			}
 			m_status = Status::Connecting;
-			statusTime = std::chrono::system_clock::now();
+
+			// Get current time
+			m_lastUpdate = std::chrono::steady_clock::now();
+
+			statusTime = m_lastUpdate;
 
             // On macOS, without this slight delay after a connect attempt, the socket returns immediate
             // success on IsWriteable(), even if no connection is present.
@@ -91,12 +96,12 @@ void Client::Run()
 		}
 		else if (m_status == Status::Connecting)
 		{
-			if (std::chrono::system_clock::now() > statusTime + std::chrono::milliseconds(m_timeoutMs))
+			if (std::chrono::steady_clock::now() > statusTime + std::chrono::milliseconds(m_timeoutMs))
 			{
 				if (address->Next())
 				{
 					m_status = Status::Initial;
-					statusTime = std::chrono::system_clock::now();
+					statusTime = std::chrono::steady_clock::now();
 					LogWriteLine("Client failed to connect - trying next address.");
 				}
 				else
@@ -126,7 +131,14 @@ void Client::Run()
 		else if (m_status == Status::Ready)
 		{
 			if (m_onUpdate)
-				m_onUpdate(*this);
+			{
+				auto nowTime = std::chrono::steady_clock::now();
+				if ((nowTime - std::chrono::milliseconds(m_updateMs)) > m_lastUpdate)
+				{
+					m_onUpdate(*this);
+					m_lastUpdate = nowTime;
+				}
+			}
 
 			// Check first to see if we can write to the socket
 			if (m_socket->IsWritable())

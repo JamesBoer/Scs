@@ -67,6 +67,8 @@ namespace Scs
 		String m_port;
 		String m_address;
 		long long m_timeoutMs;
+		uint32_t m_updateMs;
+		std::chrono::time_point<std::chrono::steady_clock> m_lastUpdate;
 		std::atomic<Status> m_status = Status::Initial;
 		std::atomic_bool m_error = false;
 		SendQueue m_sendQueue;
