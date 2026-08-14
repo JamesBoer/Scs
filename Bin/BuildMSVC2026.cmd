@@ -1,5 +1,5 @@
 @echo off
-call GenerateMSVC2019.cmd
+call GenerateMSVC2026.cmd
 cd ..
 
 IF NOT EXIST Build (
@@ -9,14 +9,14 @@ goto ERROR
 
 cd Build
 
-MSBuild Scs.sln /p:Configuration=Debug && (
+MSBuild Scs.slnx /p:Configuration=Debug && (
   echo Debug build succeeded
 ) || (
   echo Debug build failed
   goto ERROR
 )
 
-MSBuild Scs.sln /p:Configuration=Release && (
+MSBuild Scs.slnx /p:Configuration=Release && (
   echo Release build succeeded
 ) || (
   echo Release build failed
